@@ -1,0 +1,13 @@
+.venv310/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+uploads/
+outputs/
+*.pdf
+.git/
+.env
+.env.*

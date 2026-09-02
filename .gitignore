@@ -216,3 +216,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# === 本项目专属 ===
+# Python 虚拟环境与旧的便携依赖目录
+/.venv310/
+/.venv/
+/.pylibs/
+/.pylibs310/
+
+# 运行时用户数据（上传文件、生成结果、任务数据库）
+/uploads/
+/outputs/
+/tasks.db
+
+# 一次性调试脚本
+/_inspect_pdf.py

@@ -1,0 +1,265 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f8fafc;
+}
+
+.eyebrow {
+  color: #6366f1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin-bottom: 0.45rem;
+}
+
+.nav-btn.nav-active,
+.nav-btn.nav-active:hover,
+.nav-btn.nav-active:focus,
+.nav-btn.nav-active:active {
+  background-color: #4f46e5;
+  color: #ffffff;
+}
+
+#drop-zone {
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.07);
+}
+
+.upload-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.upload-features span {
+  background: #eef2ff;
+  border-radius: 999px;
+  color: #4f46e5;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+}
+
+#tasks-list > div {
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+#tasks-list > div:hover {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+/* 结果预览页：整屏 flex 布局，最外层不滚动，目录与正文各自独立滚动 */
+body.result-view {
+  overflow: hidden;
+}
+
+body.result-view .app-shell {
+  height: 100vh;
+  max-width: 100rem;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.5rem;
+}
+
+body.result-view .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex: 0 0 auto;
+  margin-bottom: 1rem;
+}
+
+body.result-view header,
+body.result-view nav {
+  margin-bottom: 0;
+}
+
+body.result-view nav {
+  flex-shrink: 0;
+}
+
+body.result-view #view-result {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+body.result-view #view-result > .flex:first-child {
+  flex: 0 0 auto;
+}
+
+body.result-view .result-layout {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  gap: 1rem;
+}
+
+body.result-view #result-toc,
+body.result-view #result-content {
+  border: 1px solid #e5e7eb;
+  height: auto;
+  max-height: none;
+  position: static;
+  min-height: 0;
+  overflow: auto;
+  flex: 1 1 0;
+}
+
+body.result-view #result-content {
+  scroll-behavior: smooth;
+}
+
+body.result-view #result-toc {
+  flex: 0 0 16rem;
+}
+
+body.result-view #result-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#result-toc a {
+  display: block;
+  border-left: 2px solid transparent;
+  padding: 0.3rem 0.5rem;
+  line-height: 1.45;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+#result-toc a.active {
+  background: #eef2ff;
+  border-left-color: #4f46e5;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+@media (max-width: 767px) {
+  body.result-view .app-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  body.result-view #view-result {
+    flex: 1;
+  }
+
+  #result-content {
+    height: calc(100vh - 12rem);
+  }
+}
+
+#drop-zone.dragover {
+  background-color: #eef2ff;
+  border-color: #4f46e5;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: #1f2937;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.prose p {
+  margin-bottom: 1em;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+/* Markdown 表格样式（Tailwind preflight 会清除表格边框/内边距，需显式补回） */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.875rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose thead {
+  display: table-header-group;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+}
+
+.prose th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.prose tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.prose code {
+  background-color: #f3f4f6;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose pre {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0.5em 0 1em;
+  padding-left: 1.5em;
+}
+
+.prose li {
+  margin-bottom: 0.35em;
+  line-height: 1.7;
+}
+
+#result-toc ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+#result-toc li {
+  margin-bottom: 0.5rem;
+}
+
+#result-toc a {
+  color: #4b5563;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+#result-toc a:hover {
+  color: #4f46e5;
+}
+
+#result-toc a.active {
+  color: #4f46e5;
+  font-weight: 600;
+}

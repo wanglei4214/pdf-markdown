@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF OCR to Markdown</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+  <div class="app-shell max-w-5xl mx-auto px-4 py-8 md:py-10">
+    <div class="topbar">
+      <header class="mb-8">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="eyebrow">DOCUMENT CONVERTER</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700 whitespace-nowrap">PDF → Markdown</h1>
+          </div>
+        </div>
+      </header>
+
+      <nav class="flex gap-2 mb-6 p-1 bg-white rounded-xl border border-gray-200 w-fit shadow-sm">
+        <button id="nav-upload" data-view="upload" class="nav-btn px-4 py-2 rounded-lg bg-indigo-600 text-white">上传文件</button>
+        <button id="nav-tasks" data-view="tasks" class="nav-btn px-4 py-2 rounded-lg bg-white text-gray-700 hover:bg-gray-100">任务列表</button>
+      </nav>
+    </div>
+
+    <!-- Upload View -->
+    <section id="view-upload" class="view">
+      <div
+        id="drop-zone"
+        class="border-2 border-dashed border-indigo-300 rounded-xl p-12 text-center bg-white hover:bg-indigo-50 transition cursor-pointer"
+      >
+        <p class="text-lg font-medium text-indigo-700">点击或拖拽 PDF 到此处上传</p>
+        <p class="text-sm text-gray-400 mt-2">支持扫描版和文字版 PDF · 文件仅在本地处理</p>
+        <div class="upload-features">
+          <span>扫描版 OCR</span><span>文字层解析</span><span>表格与目录保留</span>
+        </div>
+        <input type="file" id="file-input" accept=".pdf" class="hidden">
+      </div>
+      <div id="upload-status" class="mt-4 hidden"></div>
+    </section>
+
+    <!-- Tasks View -->
+    <section id="view-tasks" class="view hidden">
+      <div id="tasks-list" class="space-y-4">
+        <p class="text-gray-500">暂无任务</p>
+      </div>
+    </section>
+
+    <!-- Result View -->
+    <section id="view-result" class="view hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h2 id="result-title" class="text-xl font-semibold"></h2>
+        <div class="flex gap-2">
+          <button id="btn-copy" class="px-4 py-2 rounded-lg bg-white border hover:bg-gray-100">复制全文</button>
+          <button id="btn-download" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">下载 .md</button>
+          <button id="btn-back" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">返回</button>
+        </div>
+      </div>
+      <div class="result-layout flex gap-6">
+        <aside id="result-toc" class="w-48 hidden md:block bg-white rounded-lg shadow p-4"></aside>
+        <article id="result-content" class="flex-1 bg-white rounded-lg shadow p-6 prose max-w-none"></article>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
