@@ -26,6 +26,7 @@ services:
       - ./static:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/html:/var/www/html:ro
 
   certbot:
     image: certbot/certbot

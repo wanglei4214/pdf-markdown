@@ -75,13 +75,12 @@ py -3.10 -m venv .venv310
 
 ## SSL 证书
 ```bash
-# 添加到 crontab（每周一凌晨 2:00 执行一次）
-0 2 * * 1 cd /app/pdf-markdown && docker compose --profile cert run --rm certbot >> /var/log/certbot-renew.log 2>&1 && docker exec pdf2md-nginx nginx -s reload
+# 在宿主机执行 crontab -e；每周一凌晨 2:00 检查一次并续期
+0 2 * * 1 cd /app/pdf-markdown && docker compose --profile cert run --rm --no-deps certbot >> /var/log/certbot-renew.log 2>&1 && docker exec pdf2md-nginx nginx -s reload
 
-#测试续期流程
-docker compose --profile cert run --rm certbot renew --dry-run 
-#配置正确，到期后会自动续期（Congratulations, all renewals succeeded）
+# 测试续期流程（不会真正签发或替换证书）
+docker compose --profile cert run --rm --no-deps certbot renew --dry-run
 
-# 查看证书日期
-docker compose run -rm certbot certificates
+# 查看证书有效期
+docker compose --profile cert run --rm --no-deps certbot certificates
 ```
