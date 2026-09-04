@@ -74,12 +74,14 @@ py -3.10 -m venv .venv310
 - `start.ps1`：Windows 本地启动脚本
 
 ## SSL 证书
+
 ```bash
 # 在宿主机执行 crontab -e；每周一凌晨 2:00 检查一次并续期
 0 2 * * 1 cd /app/pdf-markdown && docker compose --profile cert run --rm --no-deps certbot >> /var/log/certbot-renew.log 2>&1 && docker exec pdf2md-nginx nginx -s reload
 
 # 测试续期流程（不会真正签发或替换证书）
 docker compose --profile cert run --rm --no-deps certbot renew --dry-run
+# 测试成功时会出现 Congratulations, all simulated renewals succeeded
 
 # 查看证书有效期
 docker compose --profile cert run --rm --no-deps certbot certificates

@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 import models
 from ocr_engine import OcrEngine
 
-app = FastAPI(title='PDF OCR to Markdown')
+app = FastAPI(title='PDF to Markdown')
 
 BASE_DIR = Path(__file__).parent
 DATA_DIR = Path(os.getenv('DATA_DIR', BASE_DIR))
