@@ -217,14 +217,16 @@ function closeToc() {
   const toc = $('#result-toc');
   toc.classList.remove('toc-open');
   document.body.classList.remove('toc-open');
-  $('#btn-toc').textContent = '查看目录';
+  $('#btn-toc').setAttribute('aria-label', '打开目录');
+  $('#btn-toc').setAttribute('title', '打开目录');
   $('#toc-backdrop').setAttribute('aria-hidden', 'true');
 }
 
 function openToc() {
   $('#result-toc').classList.add('toc-open');
   document.body.classList.add('toc-open');
-  $('#btn-toc').textContent = '收起目录';
+  $('#btn-toc').setAttribute('aria-label', '关闭目录');
+  $('#btn-toc').setAttribute('title', '关闭目录');
   $('#toc-backdrop').setAttribute('aria-hidden', 'false');
 }
 

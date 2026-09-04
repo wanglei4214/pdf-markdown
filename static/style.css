@@ -220,10 +220,34 @@ body.result-view #result-content {
   }
 
   #btn-toc {
-    position: sticky;
-    top: 0.75rem;
-    z-index: 10;
-    box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.08);
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 40;
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: 0;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #4f46e5;
+    box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.14);
+  }
+
+  #btn-toc svg {
+    width: 1.45rem;
+    height: 1.45rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+  }
+
+  #btn-toc:active {
+    transform: scale(0.94);
   }
 
   #result-toc h3 {

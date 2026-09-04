@@ -59,7 +59,12 @@
           <button id="btn-back" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 whitespace-nowrap text-sm">返回</button>
         </div>
       </div>
-      <button id="btn-toc" class="md:hidden w-full mb-3 px-4 py-2 rounded-lg bg-white border border-indigo-200 text-indigo-700 text-sm">查看目录</button>
+      <button id="btn-toc" class="md:hidden" type="button" aria-label="打开目录" title="打开目录">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+          <path d="M8 9l3 3-3 3" />
+        </svg>
+      </button>
       <div id="toc-backdrop" class="toc-backdrop md:hidden" aria-hidden="true"></div>
       <div class="result-layout flex flex-col md:flex-row gap-6">
         <aside id="result-toc" class="result-toc w-full md:w-48 hidden md:block bg-white rounded-lg shadow p-4"></aside>
