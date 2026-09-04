@@ -72,3 +72,16 @@ py -3.10 -m venv .venv310
 - `doc/`：功能说明与需求文档
 - `requirements.txt`：Python 依赖
 - `start.ps1`：Windows 本地启动脚本
+
+## SSL 证书
+```bash
+# 添加到 crontab（每周一凌晨 2:00 执行一次）
+0 2 * * 1 cd /app/pdf-markdown && docker compose --profile cert run --rm certbot >> /var/log/certbot-renew.log 2>&1 && docker exec pdf2md-nginx nginx -s reload
+
+#测试续期流程
+docker compose --profile cert run --rm certbot renew --dry-run 
+#配置正确，到期后会自动续期（Congratulations, all renewals succeeded）
+
+# 查看证书日期
+docker compose run -rm certbot certificates
+```
