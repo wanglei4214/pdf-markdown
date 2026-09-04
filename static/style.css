@@ -137,10 +137,14 @@ body.result-view #result-content {
   border-radius: 0 0.25rem 0.25rem 0;
 }
 
-/* 移动端：放弃桌面端整屏固定布局，改为整页自然滚动，目录可折叠 */
+/* 移动端：目录通过左侧抽屉打开，正文保持整页自然滚动 */
 @media (max-width: 767px) {
   body.result-view {
     overflow: auto;
+  }
+
+  body.result-view.toc-open {
+    overflow: hidden;
   }
 
   body.result-view .app-shell {
@@ -170,18 +174,68 @@ body.result-view #result-content {
     overflow: visible;
   }
 
-  body.result-view #result-toc,
   body.result-view #result-content {
     overflow: visible;
     flex: none;
     width: 100%;
+    scroll-margin-top: 1rem;
   }
 
-  /* 目录展开时位于正文上方，可纵向滚动 */
-  body.result-view #result-toc.toc-open {
+  body.result-view #result-toc {
     display: block;
-    max-height: 45vh;
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(82vw, 21rem);
+    max-height: none;
     overflow-y: auto;
+    border: 0;
+    border-radius: 0 0.75rem 0.75rem 0;
+    padding: 1.25rem 1rem 2rem;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    box-shadow: 0.5rem 0 2rem rgba(15, 23, 42, 0.2);
+  }
+
+  body.result-view #result-toc.toc-open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .toc-backdrop {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  body.result-view.toc-open .toc-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #btn-toc {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 10;
+    box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.08);
+  }
+
+  #result-toc h3 {
+    font-size: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  #result-toc a {
+    padding: 0.65rem 0.75rem;
+    border-left-width: 3px;
+    font-size: 0.95rem;
   }
 
   body.result-view #result-content {

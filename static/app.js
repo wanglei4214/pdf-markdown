@@ -204,18 +204,32 @@ async function loadResult(id) {
 
     showView('result');
     // 重置移动端目录为收起状态
+    closeToc();
     const toc = $('#result-toc');
-    toc.classList.remove('toc-open');
     toc.innerHTML = '';
-    $('#btn-toc').textContent = '查看目录';
     requestAnimationFrame(() => buildToc());
   } catch (err) {
     alert('加载结果失败：' + err.message);
   }
 }
 
+function closeToc() {
+  const toc = $('#result-toc');
+  toc.classList.remove('toc-open');
+  document.body.classList.remove('toc-open');
+  $('#btn-toc').textContent = '查看目录';
+  $('#toc-backdrop').setAttribute('aria-hidden', 'true');
+}
+
+function openToc() {
+  $('#result-toc').classList.add('toc-open');
+  document.body.classList.add('toc-open');
+  $('#btn-toc').textContent = '收起目录';
+  $('#toc-backdrop').setAttribute('aria-hidden', 'false');
+}
+
 function buildToc() {
-  const headings = [...$$('#result-content h1, #result-content h2, #result-content h3')];
+  const headings = [...$$('#result-content h1, #result-content h2, #result-content h3, #result-content h4, #result-content h5, #result-content h6')];
   const toc = $('#result-toc');
   if (!headings.length) {
     toc.innerHTML = '<p class="text-sm text-gray-400">暂无目录</p>';
@@ -237,10 +251,8 @@ function buildToc() {
       e.preventDefault();
       const isMobile = window.matchMedia('(max-width: 767px)').matches;
       if (isMobile) {
-        // 移动端整页滚动：目录收起后定位到标题
-        const y = h.getBoundingClientRect().top + window.scrollY - 16;
-        toc.classList.remove('toc-open');
-        $('#btn-toc').textContent = '查看目录';
+        const y = h.getBoundingClientRect().top + window.scrollY - 24;
+        closeToc();
         window.scrollTo({ top: y, behavior: 'smooth' });
       } else {
         const top = h.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - 20;
@@ -264,6 +276,7 @@ function buildToc() {
     active.link.scrollIntoView({ block: 'nearest' });
   };
   content.onscroll = updateActive;
+  window.addEventListener('scroll', updateActive, { passive: true });
   updateActive();
 }
 
@@ -295,9 +308,11 @@ function setupNav() {
 
   $('#btn-toc').addEventListener('click', () => {
     const toc = $('#result-toc');
-    const open = toc.classList.toggle('toc-open');
-    $('#btn-toc').textContent = open ? '收起目录' : '查看目录';
+    if (toc.classList.contains('toc-open')) closeToc();
+    else openToc();
   });
+
+  $('#toc-backdrop').addEventListener('click', closeToc);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
