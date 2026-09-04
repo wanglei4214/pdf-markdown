@@ -137,21 +137,55 @@ body.result-view #result-content {
   border-radius: 0 0.25rem 0.25rem 0;
 }
 
+/* 移动端：放弃桌面端整屏固定布局，改为整页自然滚动，目录可折叠 */
 @media (max-width: 767px) {
+  body.result-view {
+    overflow: auto;
+  }
+
   body.result-view .app-shell {
+    height: auto;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+  }
+
+  body.result-view .topbar {
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  body.result-view nav {
+    margin-top: 1rem;
+    width: 100%;
+  }
+
+  body.result-view #view-result,
+  body.result-view .result-layout {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
   }
 
-  body.result-view #view-result {
-    flex: 1;
+  body.result-view .result-layout {
+    flex: none;
+    overflow: visible;
   }
 
-  #result-content {
-    height: calc(100vh - 12rem);
+  body.result-view #result-toc,
+  body.result-view #result-content {
+    overflow: visible;
+    flex: none;
+    width: 100%;
+  }
+
+  /* 目录展开时位于正文上方，可纵向滚动 */
+  body.result-view #result-toc.toc-open {
+    display: block;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+
+  body.result-view #result-content {
+    scroll-behavior: auto;
   }
 }
 
@@ -170,6 +204,18 @@ body.result-view #result-content {
   margin-bottom: 1em;
   line-height: 1.8;
   text-align: justify;
+}
+
+/* 长英文串/链接在窄屏自动换行，避免被容器右边缘裁掉 */
+.prose,
+.prose p,
+.prose li,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Markdown 表格样式（Tailwind preflight 会清除表格边框/内边距，需显式补回） */

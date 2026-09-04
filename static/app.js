@@ -203,6 +203,11 @@ async function loadResult(id) {
     };
 
     showView('result');
+    // 重置移动端目录为收起状态
+    const toc = $('#result-toc');
+    toc.classList.remove('toc-open');
+    toc.innerHTML = '';
+    $('#btn-toc').textContent = '查看目录';
     requestAnimationFrame(() => buildToc());
   } catch (err) {
     alert('加载结果失败：' + err.message);
@@ -230,8 +235,17 @@ function buildToc() {
     a.textContent = h.textContent;
     a.addEventListener('click', (e) => {
       e.preventDefault();
-      const top = h.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - 20;
-      content.scrollTo({ top, behavior: 'smooth' });
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      if (isMobile) {
+        // 移动端整页滚动：目录收起后定位到标题
+        const y = h.getBoundingClientRect().top + window.scrollY - 16;
+        toc.classList.remove('toc-open');
+        $('#btn-toc').textContent = '查看目录';
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      } else {
+        const top = h.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - 20;
+        content.scrollTo({ top, behavior: 'smooth' });
+      }
     });
     li.appendChild(a);
     ul.appendChild(li);
@@ -277,6 +291,12 @@ function setupNav() {
   $('#btn-back').addEventListener('click', () => {
     showView('tasks');
     loadTasks();
+  });
+
+  $('#btn-toc').addEventListener('click', () => {
+    const toc = $('#result-toc');
+    const open = toc.classList.toggle('toc-open');
+    $('#btn-toc').textContent = open ? '收起目录' : '查看目录';
   });
 }
 
