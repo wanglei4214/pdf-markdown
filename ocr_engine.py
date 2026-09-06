@@ -488,7 +488,7 @@ def _md_detect_grid_table(stream, i):
         end_idx = block[-1][0]
     else:
         # 无表头：占位表头
-        header = [('列%d' % (c + 1), first_cells[c][1], first_cells[c][1])
+        header = [('Column %d' % (c + 1), first_cells[c][1], first_cells[c][1])
                   for c in range(ncol)]
         data = [c for _idx, c in block]
         end_idx = block[-1][0]
@@ -565,8 +565,8 @@ def _md_detect_field_table(stream, i):
         return None
 
     # 占位表头：按列位置给通用名
-    default_headers = ['元素名称', '元素', '长度', '描述', '域类型', '签名', '列7', '列8']
-    header = [(default_headers[k] if k < len(default_headers) else '列%d' % (k + 1),
+    default_headers = ['Element Name', 'Element', 'Length', 'Description', 'Field Type', 'Signature', 'Column 7', 'Column 8']
+    header = [(default_headers[k] if k < len(default_headers) else 'Column %d' % (k + 1),
                anchors[k], anchors[k]) for k in range(n_cols)]
 
     rows = []
@@ -647,7 +647,7 @@ def _md_normalize_table_rows(rows):
     if not rows:
         return rows
     header = rows[0]
-    standard = len(header) >= 5 and header[0].replace(' ', '') == '元素名称'
+    standard = len(header) >= 5 and header[0].replace(' ', '') in ('元素名称', 'ElementName')
     if not standard:
         return rows
     n_cols = len(header)
@@ -834,7 +834,7 @@ def convert_text_pdf(reader, page_payloads=None):
     # ---- 第二遍：渲染 ----
     out = []
     if toc:
-        out.append('## 目录\n\n' + '\n'.join(toc))
+        out.append('## Table of Contents\n\n' + '\n'.join(toc))
     table = None
 
     def flush_table():
@@ -934,7 +934,7 @@ def convert_text_pdf(reader, page_payloads=None):
             j = next_line(i)
             if j < n and _md_is_retcode_desc(stream[j][1][2]):
                 flush_table()
-                rows = [['返回码', '说明'],
+                rows = [['Return Code', 'Description'],
                         [cells[0][0].strip(), stream[j][1][2][0][0].strip()]]
                 j = next_line(j)
                 while j < n:

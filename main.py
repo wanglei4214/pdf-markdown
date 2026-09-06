@@ -68,7 +68,7 @@ models.init_db()
 models.mark_status_where(
     old_status='processing',
     new_status='failed',
-    error_message='服务已重启，任务处理被中断。请点击“继续处理”重新启动。',
+    error_message='The service was restarted and processing was interrupted. Please click "Resume" to restart.',
 )
 
 # 全局引擎，启动时初始化
@@ -103,7 +103,7 @@ async def root():
 @app.post('/api/tasks/upload')
 async def upload(file: UploadFile = File(...)):
     if not file.filename or not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail='仅支持 PDF 文件')
+        raise HTTPException(status_code=400, detail='Only PDF files are supported')
 
     task = models.create_task(file.filename, 0)
     upload_path = UPLOAD_DIR / f"{task['id']}.pdf"
@@ -113,7 +113,7 @@ async def upload(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, f)
     except Exception as e:
         models.delete_task(task['id'])
-        raise HTTPException(status_code=500, detail=f'保存文件失败: {e}')
+        raise HTTPException(status_code=500, detail=f'Failed to save file: {e}')
     finally:
         file.file.close()
 
@@ -158,10 +158,10 @@ def _run_ocr(task_id: str, pdf_path: str):
             _ocr_slots.release()
 
         if not output_path.exists() or output_path.stat().st_size == 0:
-            raise RuntimeError('未能从 PDF 中识别到有效内容。可能的原因：\n'
-                               '1. 该 PDF 是文字版而非扫描版，但文字层提取失败；\n'
-                               '2. 页面为纯图片/图表，未包含可识别文本；\n'
-                               '3. OCR 置信度阈值过滤掉了全部结果。')
+            raise RuntimeError('No valid content could be recognized from the PDF. Possible reasons:\n'
+                               '1. The PDF is text-based rather than scanned, but text-layer extraction failed;\n'
+                               '2. The pages contain only images/charts with no recognizable text;\n'
+                               '3. The OCR confidence threshold filtered out all results.')
 
         models.update_task_status(
             task_id,
@@ -191,7 +191,7 @@ async def list_tasks(limit: int = 100, offset: int = 0):
 async def get_task(task_id: str):
     task = models.get_task(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail='任务不存在')
+        raise HTTPException(status_code=404, detail='Task not found')
     return task
 
 
@@ -199,9 +199,9 @@ async def get_task(task_id: str):
 async def get_markdown(task_id: str):
     task = models.get_task(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail='任务不存在')
+        raise HTTPException(status_code=404, detail='Task not found')
     if not task['output_path'] or not Path(task['output_path']).exists():
-        raise HTTPException(status_code=404, detail='Markdown 尚未生成')
+        raise HTTPException(status_code=404, detail='Markdown has not been generated yet')
     content = Path(task['output_path']).read_text(encoding='utf-8')
     return PlainTextResponse(content)
 
@@ -210,9 +210,9 @@ async def get_markdown(task_id: str):
 async def download_markdown(task_id: str):
     task = models.get_task(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail='任务不存在')
+        raise HTTPException(status_code=404, detail='Task not found')
     if not task['output_path'] or not Path(task['output_path']).exists():
-        raise HTTPException(status_code=404, detail='Markdown 尚未生成')
+        raise HTTPException(status_code=404, detail='Markdown has not been generated yet')
     original_name = Path(task['original_name']).stem + '.md'
     return FileResponse(task['output_path'], filename=original_name, media_type='text/markdown')
 
@@ -221,7 +221,7 @@ async def download_markdown(task_id: str):
 async def delete_task(task_id: str):
     task = models.get_task(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail='任务不存在')
+        raise HTTPException(status_code=404, detail='Task not found')
 
     upload_path = UPLOAD_DIR / f'{task_id}.pdf'
     output_path = OUTPUT_DIR / f'{task_id}.md'
@@ -238,17 +238,17 @@ async def delete_task(task_id: str):
 async def retry_task(task_id: str):
     task = models.get_task(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail='任务不存在')
+        raise HTTPException(status_code=404, detail='Task not found')
 
     if task['status'] == 'success':
-        raise HTTPException(status_code=400, detail='已成功的任务无需继续处理')
+        raise HTTPException(status_code=400, detail='This task has already completed successfully')
 
     if task_id in _active_threads and _active_threads[task_id].is_alive():
-        raise HTTPException(status_code=400, detail='该任务正在处理中，请稍后再试')
+        raise HTTPException(status_code=400, detail='This task is currently being processed, please try again later')
 
     upload_path = UPLOAD_DIR / f'{task_id}.pdf'
     if not upload_path.exists():
-        raise HTTPException(status_code=404, detail='上传的 PDF 文件已丢失，无法继续处理')
+        raise HTTPException(status_code=404, detail='The uploaded PDF file is missing and processing cannot continue')
 
     output_path = OUTPUT_DIR / f'{task_id}.md'
     if output_path.exists():

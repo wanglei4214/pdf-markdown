@@ -29,24 +29,24 @@ function formatSize(bytes) {
 
 function formatTime(iso) {
   const d = new Date(iso);
-  return d.toLocaleString('zh-CN');
+  return d.toLocaleString();
 }
 
 function statusBadge(status) {
   const map = {
-    pending: ['等待中', 'bg-gray-100 text-gray-700'],
-    processing: ['处理中', 'bg-blue-100 text-blue-700'],
-    success: ['完成', 'bg-green-100 text-green-700'],
-    failed: ['失败', 'bg-red-100 text-red-700'],
+    pending: ['Pending', 'bg-gray-100 text-gray-700'],
+    processing: ['Processing', 'bg-blue-100 text-blue-700'],
+    success: ['Done', 'bg-green-100 text-green-700'],
+    failed: ['Failed', 'bg-red-100 text-red-700'],
   };
-  const [text, cls] = map[status] || ['未知', 'bg-gray-100'];
+  const [text, cls] = map[status] || ['Unknown', 'bg-gray-100'];
   return `<span class="px-2 py-1 rounded text-xs font-medium ${cls}">${text}</span>`;
 }
 
 async function uploadFile(file) {
   const status = $('#upload-status');
   status.classList.remove('hidden');
-  status.innerHTML = '<p class="text-blue-600">正在上传...</p>';
+  status.innerHTML = '<p class="text-blue-600">Uploading...</p>';
 
   const form = new FormData();
   form.append('file', file);
@@ -58,13 +58,13 @@ async function uploadFile(file) {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || '上传失败');
+      throw new Error(data.detail || 'Upload failed');
     }
-    status.innerHTML = '<p class="text-green-600">上传成功，OCR 已开始处理</p>';
+    status.innerHTML = '<p class="text-green-600">Upload successful. OCR processing has started.</p>';
     showView('tasks');
     loadTasks();
   } catch (err) {
-    status.innerHTML = `<p class="text-red-600">错误：${err.message}</p>`;
+    status.innerHTML = `<p class="text-red-600">Error: ${err.message}</p>`;
   }
 }
 
@@ -101,7 +101,7 @@ async function loadTasks() {
     const res = await fetch(`${API_BASE}/api/tasks`);
     const tasks = await res.json();
     if (!tasks.length) {
-      container.innerHTML = '<p class="text-gray-500">暂无任务</p>';
+      container.innerHTML = '<p class="text-gray-500">No tasks yet</p>';
       return;
     }
 
@@ -110,8 +110,8 @@ async function loadTasks() {
         ? Math.min(100, Math.round((t.current_page / t.total_pages) * 100))
         : 0;
       const pageProgress = t.status === 'processing'
-        ? (t.total_pages ? `· 当前进度 ${t.current_page}/${t.total_pages} 页` : '· 正在分析 PDF 页面...')
-        : (t.total_pages ? `· 页码 ${t.current_page}/${t.total_pages}` : '');
+        ? (t.total_pages ? `· Progress ${t.current_page}/${t.total_pages} pages` : '· Analyzing PDF pages...')
+        : (t.total_pages ? `· Page ${t.current_page}/${t.total_pages}` : '');
       return `
         <div class="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div class="flex-1 min-w-0">
@@ -132,12 +132,12 @@ async function loadTasks() {
           </div>
           <div class="flex gap-2">
             ${t.status === 'success' ? `
-              <button data-id="${t.id}" class="btn-preview px-3 py-1.5 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm">预览</button>
-              <a href="${API_BASE}/api/tasks/${t.id}/download" class="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700 text-sm">下载</a>
+              <button data-id="${t.id}" class="btn-preview px-3 py-1.5 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm">Preview</button>
+              <a href="${API_BASE}/api/tasks/${t.id}/download" class="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700 text-sm">Download</a>
             ` : `
-              <button data-id="${t.id}" class="btn-retry px-3 py-1.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm">${t.status === 'processing' ? '重启处理' : '继续处理'}</button>
+              <button data-id="${t.id}" class="btn-retry px-3 py-1.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm">${t.status === 'processing' ? 'Restart' : 'Resume'}</button>
             `}
-            <button data-id="${t.id}" class="btn-delete px-3 py-1.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm">删除</button>
+            <button data-id="${t.id}" class="btn-delete px-3 py-1.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm">Delete</button>
           </div>
         </div>
       `;
@@ -157,12 +157,12 @@ async function loadTasks() {
     if (hasRunning) startPolling();
     else stopPolling();
   } catch (err) {
-    container.innerHTML = `<p class="text-red-500">加载失败：${err.message}</p>`;
+    container.innerHTML = `<p class="text-red-500">Failed to load: ${err.message}</p>`;
   }
 }
 
 async function deleteTask(id) {
-  if (!confirm('确定删除该任务及生成的文件？')) return;
+  if (!confirm('Delete this task and its generated files?')) return;
   await fetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE' });
   loadTasks();
 }
@@ -172,11 +172,11 @@ async function retryTask(id) {
     const res = await fetch(`${API_BASE}/api/tasks/${id}/retry`, { method: 'POST' });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || '继续处理失败');
+      throw new Error(data.detail || 'Failed to resume processing');
     }
     loadTasks();
   } catch (err) {
-    alert('继续处理失败：' + err.message);
+    alert('Failed to resume processing: ' + err.message);
   }
 }
 
@@ -198,18 +198,18 @@ async function loadResult(id) {
     $('#btn-copy').onclick = async () => {
       await navigator.clipboard.writeText(md);
       const old = $('#btn-copy').textContent;
-      $('#btn-copy').textContent = '已复制';
+      $('#btn-copy').textContent = 'Copied';
       setTimeout(() => $('#btn-copy').textContent = old, 1500);
     };
 
     showView('result');
-    // 重置移动端目录为收起状态
+    // Reset mobile TOC to collapsed state
     closeToc();
     const toc = $('#result-toc');
     toc.innerHTML = '';
     requestAnimationFrame(() => buildToc());
   } catch (err) {
-    alert('加载结果失败：' + err.message);
+    alert('Failed to load result: ' + err.message);
   }
 }
 
@@ -217,16 +217,16 @@ function closeToc() {
   const toc = $('#result-toc');
   toc.classList.remove('toc-open');
   document.body.classList.remove('toc-open');
-  $('#btn-toc').setAttribute('aria-label', '打开目录');
-  $('#btn-toc').setAttribute('title', '打开目录');
+  $('#btn-toc').setAttribute('aria-label', 'Open table of contents');
+  $('#btn-toc').setAttribute('title', 'Open table of contents');
   $('#toc-backdrop').setAttribute('aria-hidden', 'true');
 }
 
 function openToc() {
   $('#result-toc').classList.add('toc-open');
   document.body.classList.add('toc-open');
-  $('#btn-toc').setAttribute('aria-label', '关闭目录');
-  $('#btn-toc').setAttribute('title', '关闭目录');
+  $('#btn-toc').setAttribute('aria-label', 'Close table of contents');
+  $('#btn-toc').setAttribute('title', 'Close table of contents');
   $('#toc-backdrop').setAttribute('aria-hidden', 'false');
 }
 
@@ -234,7 +234,7 @@ function buildToc() {
   const headings = [...$$('#result-content h1, #result-content h2, #result-content h3, #result-content h4, #result-content h5, #result-content h6')];
   const toc = $('#result-toc');
   if (!headings.length) {
-    toc.innerHTML = '<p class="text-sm text-gray-400">暂无目录</p>';
+    toc.innerHTML = '<p class="text-sm text-gray-400">No table of contents</p>';
     return;
   }
 
@@ -265,7 +265,7 @@ function buildToc() {
     ul.appendChild(li);
     links.push({ heading: h, link: a });
   });
-  toc.innerHTML = '<h3 class="font-semibold mb-3 text-sm text-gray-700">目录</h3>';
+  toc.innerHTML = '<h3 class="font-semibold mb-3 text-sm text-gray-700">Table of Contents</h3>';
   toc.appendChild(ul);
 
   const updateActive = () => {
