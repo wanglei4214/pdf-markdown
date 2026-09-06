@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
+from logging.handlers import RotatingFileHandler
 import os
 import shutil
 import threading
 import traceback
 from pathlib import Path
+
+logger = logging.getLogger('pdf2md')
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
@@ -21,6 +25,43 @@ OUTPUT_DIR = DATA_DIR / 'outputs'
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+LOG_DIR = DATA_DIR / 'logs'
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def setup_logging():
+    """配置日志：同时输出到控制台和文件（按大小轮转），文件位于数据目录 logs/。"""
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+
+    file_handler = RotatingFileHandler(
+        LOG_DIR / 'app.log',
+        maxBytes=10 * 1024 * 1024,  # 单文件 10 MB
+        backupCount=5,              # 保留 5 个历史文件
+        encoding='utf-8',
+    )
+    file_handler.setFormatter(formatter)
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.handlers.clear()
+    root.addHandler(console)
+    root.addHandler(file_handler)
+
+    # 让 uvicorn 的访问/错误日志也写入同一文件
+    for name in ('uvicorn', 'uvicorn.error', 'uvicorn.access'):
+        lg = logging.getLogger(name)
+        lg.handlers.clear()
+        lg.addHandler(console)
+        lg.addHandler(file_handler)
+        lg.propagate = False
+
+
+setup_logging()
+logger = logging.getLogger('pdf2md')
+
 models.init_db()
 
 # 服务重启后，之前处于 processing 的任务实际上已停止，标记为失败并提示用户重试
@@ -34,6 +75,12 @@ models.mark_status_where(
 _ocr_engine: OcrEngine | None = None
 _engine_lock = threading.Lock()
 _active_threads: dict[str, threading.Thread] = {}
+
+# OCR 并发槽：RapidOCR/onnxruntime 实例非线程安全，且 OCR 内存占用高，
+# 多个任务同时推理会导致 native 崩溃 / OOM。用信号量串行化，多余任务排队等待。
+# 如需更高并发，应改用独立 worker 进程（Celery 等），而不是调大此值。
+_max_concurrency = max(1, int(os.getenv('OCR_MAX_CONCURRENCY', '1')))
+_ocr_slots = threading.BoundedSemaphore(_max_concurrency)
 
 
 def get_engine() -> OcrEngine:
@@ -98,9 +145,17 @@ def _run_ocr(task_id: str, pdf_path: str):
         )
 
     try:
-        models.update_task_status(task_id, status='processing', current_page=0, total_pages=0)
-        engine = get_engine()
-        engine.process_pdf(pdf_path, str(output_path), progress_callback=on_progress)
+        # 排队等待 OCR 槽位；等待期间保持 pending，拿到槽位后才标记 processing。
+        # 这样多个任务会串行执行，避免并发调用同一 OCR 实例导致 native 崩溃 / OOM。
+        logger.info('任务 %s 等待 OCR 槽位（并发上限 %d）', task_id, _max_concurrency)
+        _ocr_slots.acquire()
+        try:
+            logger.info('任务 %s 开始处理', task_id)
+            models.update_task_status(task_id, status='processing', current_page=0, total_pages=0)
+            engine = get_engine()
+            engine.process_pdf(pdf_path, str(output_path), progress_callback=on_progress)
+        finally:
+            _ocr_slots.release()
 
         if not output_path.exists() or output_path.stat().st_size == 0:
             raise RuntimeError('未能从 PDF 中识别到有效内容。可能的原因：\n'
@@ -115,7 +170,9 @@ def _run_ocr(task_id: str, pdf_path: str):
             output_path=str(output_path),
             error_message=None,
         )
+        logger.info('任务 %s 处理完成', task_id)
     except Exception:
+        logger.exception('任务 %s 处理失败', task_id)
         models.update_task_status(
             task_id,
             status='failed',
@@ -207,6 +264,20 @@ async def retry_task(task_id: str):
     )
     _start_ocr_thread(task_id, str(upload_path))
     return models.get_task(task_id)
+
+
+def _resume_pending_tasks():
+    """服务重启后，重新入队重启前处于排队（pending）且已上传文件的任务。"""
+    for task in models.list_tasks(limit=500):
+        if task['status'] != 'pending':
+            continue
+        pdf_path = task.get('filename') or ''
+        if pdf_path and Path(pdf_path).exists():
+            logger.info('重启恢复：任务 %s 重新入队', task['id'])
+            _start_ocr_thread(task['id'], pdf_path)
+
+
+_resume_pending_tasks()
 
 
 if __name__ == '__main__':

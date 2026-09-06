@@ -9,8 +9,16 @@ DB_PATH = Path(os.getenv('DB_PATH', Path(__file__).with_name('tasks.db')))
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _connect():
+    """新建连接并开启 WAL 与忙等待，降低多线程并发读写时的锁冲突。"""
+    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=30000')
+    return conn
+
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = _connect()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
@@ -101,14 +109,14 @@ def update_task_status(task_id: str, **kwargs):
 
 
 def delete_task(task_id: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = _connect()
     conn.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
     conn.commit()
     conn.close()
 
 
 def mark_status_where(old_status: str, new_status: str, error_message: str | None = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = _connect()
     now = _now()
     if error_message is not None:
         conn.execute(
