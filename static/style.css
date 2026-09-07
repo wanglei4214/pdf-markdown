@@ -387,3 +387,53 @@ body.result-view #result-content {
   color: #4f46e5;
   font-weight: 600;
 }
+
+/* 结果预览全屏模式下隐藏营销区与页脚，避免干扰整屏布局 */
+body.result-view #faq,
+body.result-view footer {
+  display: none;
+}
+
+/* FAQ 折叠面板：隐藏默认三角，保持与卡片风格一致 */
+#faq details summary {
+  list-style: none;
+}
+
+#faq details summary::-webkit-details-marker {
+  display: none;
+}
+
+#faq details[open] summary span {
+  transform: rotate(45deg);
+}
+
+/* 隐私政策 / 服务条款 等文字页面排版 */
+.prose-page h3 {
+  color: #1f2937;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 1.75em 0 0.6em;
+}
+
+.prose-page p {
+  margin-bottom: 1em;
+  line-height: 1.8;
+  color: #374151;
+}
+
+.prose-page ul {
+  margin: 0.5em 0 1em;
+  padding-left: 1.4em;
+  list-style: disc;
+}
+
+.prose-page li {
+  margin-bottom: 0.45em;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.prose-page a {
+  color: #4f46e5;
+  text-decoration: underline;
+}
