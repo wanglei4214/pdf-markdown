@@ -10,6 +10,20 @@ services:
       DATA_DIR: /app/data
       # OCR 并发槽位数，默认 1（串行）。不建议在同进程内调大。
       OCR_MAX_CONCURRENCY: "1"
+      # Google 登录：Google Cloud Console 中创建 OAuth 2.0 Client ID（Web application）
+      # Client ID 是公开值（前端也会用到），可作为默认值写在这里
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-724994158367-9cva8vq6o80cfitkfut7fcis64d7hhde.apps.googleusercontent.com}"
+      # Session cookie 签名密钥，必须在 .env 中注入随机值，未设置则容器拒绝启动
+      # 生成方法：python -c "import secrets;print(secrets.token_urlsafe(48))"
+      SESSION_SECRET_KEY: "${SESSION_SECRET_KEY:?请在 .env 文件中设置 SESSION_SECRET_KEY}"
+      # 生产环境走 HTTPS（nginx 终止 TLS）时设为 true，本地 http 开发保持 false
+      COOKIE_SECURE: "${COOKIE_SECURE:-true}"
+      # Creem 支付：Dashboard → Developers 获取；未配置时前端不显示付费按钮
+      CREEM_API_KEY: "${CREEM_API_KEY:-}"
+      CREEM_WEBHOOK_SECRET: "${CREEM_WEBHOOK_SECRET:-}"
+      CREEM_PRODUCT_ID: "${CREEM_PRODUCT_ID:-}"
+      # true=测试环境(test-api.creem.io)，正式上线设为 false
+      CREEM_TEST_MODE: "${CREEM_TEST_MODE:-true}"
     volumes:
       - ./tasks.db:/app/data/tasks.db
       - ./uploads:/app/data/uploads

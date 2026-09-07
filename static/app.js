@@ -1,9 +1,204 @@
 const API_BASE = '';
 let pollTimer = null;
 let currentTaskId = null;
+let currentUser = null;
+let googleClientId = null;
+let paymentConfig = { enabled: false, has_paid: false, test_mode: false };
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
+
+// ---------- 登录鉴权 ----------
+
+function renderAuthArea() {
+  const area = $('#auth-area');
+  if (!googleClientId) {
+    area.innerHTML = '';
+    return;
+  }
+  if (currentUser) {
+    const name = currentUser.name || currentUser.email || 'User';
+    const avatar = currentUser.picture
+      ? `<img src="${currentUser.picture}" alt="" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full border">`
+      : '';
+    // 付费状态徽章 / 升级按钮（支付未配置时不显示）
+    let planHtml = '';
+    if (paymentConfig.enabled) {
+      planHtml = paymentConfig.has_paid
+        ? `<span class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium whitespace-nowrap">Pro${paymentConfig.test_mode ? ' (test)' : ''}</span>`
+        : `<button id="btn-upgrade" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium whitespace-nowrap">Upgrade Pro</button>`;
+    }
+    area.innerHTML = `
+      <div class="flex items-center gap-2">
+        ${planHtml}
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1.5 pr-3 py-1 shadow-sm">
+          ${avatar}
+          <span class="text-sm text-gray-700 max-w-[120px] md:max-w-[200px] truncate" title="${currentUser.email || ''}">${name}</span>
+        </div>
+        <button id="btn-logout" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-sm whitespace-nowrap">Logout</button>
+      </div>`;
+    $('#btn-logout').addEventListener('click', logout);
+    const upgradeBtn = $('#btn-upgrade');
+    if (upgradeBtn) upgradeBtn.addEventListener('click', startCheckout);
+  } else {
+    area.innerHTML = `
+      <div class="flex items-center gap-2">
+        <div id="google-btn"></div>
+      </div>`;
+    renderGoogleButton();
+  }
+}
+
+function renderGoogleButton() {
+  const container = $('#google-btn');
+  if (!container || !window.google || !googleClientId) return;
+  google.accounts.id.initialize({
+    client_id: googleClientId,
+    callback: handleGoogleCredential,
+  });
+  google.accounts.id.renderButton(container, {
+    type: 'standard',
+    theme: 'outline',
+    size: 'medium',
+    text: 'signin_with',
+  });
+}
+
+async function handleGoogleCredential(response) {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Login failed');
+    currentUser = data.user;
+    renderAuthArea();
+    refreshAfterAuth();
+  } catch (err) {
+    alert('Google login failed: ' + err.message);
+  }
+}
+
+async function logout() {
+  await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST' });
+  if (window.google) google.accounts.id.disableAutoSelect();
+  currentUser = null;
+  stopPolling();
+  renderAuthArea();
+  refreshAfterAuth();
+}
+
+function refreshAfterAuth() {
+  if (currentUser) {
+    $('#tasks-list').innerHTML = '<p class="text-gray-500">Loading...</p>';
+    loadPaymentConfig().then(renderAuthArea);
+    loadTasks();
+  } else {
+    paymentConfig = { enabled: false, has_paid: false, test_mode: false };
+    $('#tasks-list').innerHTML = '<p class="text-gray-500">Please sign in to view your tasks</p>';
+    $('#upload-status').classList.add('hidden');
+  }
+}
+
+async function initAuth() {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/config`);
+    const cfg = await res.json();
+    googleClientId = cfg.google_client_id || null;
+  } catch (e) {
+    googleClientId = null;
+  }
+
+  if (!googleClientId) {
+    renderAuthArea();
+    return;
+  }
+
+  // 等待 GIS 脚本加载完成
+  const waitForGoogle = () => new Promise((resolve) => {
+    if (window.google && window.google.accounts) return resolve();
+    const timer = setInterval(() => {
+      if (window.google && window.google.accounts) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, 100);
+  });
+  await waitForGoogle();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/me`);
+    const data = await res.json();
+    currentUser = data.user;
+  } catch (e) {
+    currentUser = null;
+  }
+  if (currentUser) await loadPaymentConfig();
+  renderAuthArea();
+  if (currentUser) {
+    loadTasks();
+    // 从 Creem 支付成功跳回时提示用户（权益以 webhook 为准，稍后自动刷新）
+    showPaymentSuccess();
+    if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
+      setTimeout(() => { loadPaymentConfig().then(renderAuthArea); }, 3000);
+    }
+  } else {
+    $('#tasks-list').innerHTML = '<p class="text-gray-500">Please sign in to view your tasks</p>';
+  }
+}
+
+function requireLogin() {
+  if (!currentUser) {
+    alert('Please sign in with your Google account first');
+    return false;
+  }
+  return true;
+}
+
+// ---------- Creem 支付 ----------
+
+async function loadPaymentConfig() {
+  if (!currentUser) {
+    paymentConfig = { enabled: false, has_paid: false, test_mode: false };
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/payments/config`);
+    if (res.ok) paymentConfig = await res.json();
+  } catch (e) {
+    paymentConfig = { enabled: false, has_paid: false, test_mode: false };
+  }
+}
+
+async function startCheckout() {
+  if (!requireLogin()) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/payments/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to start checkout');
+    // 跳转到 Creem 托管的结账页，支付完成后跳回 success_url
+    window.location.href = data.checkout_url;
+  } catch (err) {
+    alert('Checkout failed: ' + err.message);
+  }
+}
+
+function showPaymentSuccess() {
+  // 从 Creem 支付页跳回时 URL 带 ?checkout=success
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout') === 'success') {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    const status = $('#upload-status');
+    status.classList.remove('hidden');
+    status.innerHTML = '<p class="text-green-600">Payment received! Your Pro access is being activated…</p>';
+  }
+}
 
 function showView(name) {
   $$('.view').forEach(el => el.classList.add('hidden'));
@@ -44,6 +239,7 @@ function statusBadge(status) {
 }
 
 async function uploadFile(file) {
+  if (!requireLogin()) return;
   const status = $('#upload-status');
   status.classList.remove('hidden');
   status.innerHTML = '<p class="text-blue-600">Uploading...</p>';
@@ -96,9 +292,17 @@ function setupUpload() {
 }
 
 async function loadTasks() {
+  if (!currentUser) return;
   const container = $('#tasks-list');
   try {
     const res = await fetch(`${API_BASE}/api/tasks`);
+    if (res.status === 401) {
+      currentUser = null;
+      renderAuthArea();
+      container.innerHTML = '<p class="text-gray-500">Please sign in to view your tasks</p>';
+      stopPolling();
+      return;
+    }
     const tasks = await res.json();
     if (!tasks.length) {
       container.innerHTML = '<p class="text-gray-500">No tasks yet</p>';
@@ -320,5 +524,5 @@ function setupNav() {
 document.addEventListener('DOMContentLoaded', () => {
   setupUpload();
   setupNav();
-  loadTasks();
+  initAuth();
 });
