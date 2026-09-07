@@ -43,9 +43,9 @@ function renderAuthArea() {
   } else {
     // 未登录：显示友好的 Sign in 按钮（不依赖 Google 脚本立即渲染）
     area.innerHTML = `
-      <button id="manual-signin-btn" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-medium flex items-center gap-2">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"/>
+      <button id="manual-signin-btn" class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
         </svg>
         Sign in
       </button>
@@ -133,35 +133,25 @@ function refreshAfterAuth() {
 }
 
 async function initAuth() {
+  // 1. 先获取后端配置（包括 GOOGLE_CLIENT_ID）
   try {
     const res = await fetch(`${API_BASE}/api/auth/config`);
-    const cfg = await res.json();
-    googleClientId = cfg.google_client_id || null;
+    if (res.ok) {
+      const config = await res.json();
+      googleClientId = config.google_client_id || null;
+    }
   } catch (e) {
-    googleClientId = null;
+    console.warn('无法获取认证配置', e);
   }
 
-  if (!googleClientId) {
-    renderAuthArea();
-    return;
-  }
-
-  // 等待 GIS 脚本加载完成
-  const waitForGoogle = () => new Promise((resolve) => {
-    if (window.google && window.google.accounts) return resolve();
-    const timer = setInterval(() => {
-      if (window.google && window.google.accounts) {
-        clearInterval(timer);
-        resolve();
-      }
-    }, 100);
-  });
-  await waitForGoogle();
-
+  // 2. 检查会话是否已登录
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`);
-    const data = await res.json();
-    currentUser = data.user;
+    if (res.ok) {
+      currentUser = await res.json();
+    } else {
+      currentUser = null;
+    }
   } catch (e) {
     currentUser = null;
   }
