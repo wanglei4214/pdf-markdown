@@ -181,7 +181,7 @@ async def google_login():
 @app.get('/api/auth/google/callback')
 async def google_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None):
     if error:
-        return RedirectResponse('/static/index.html?login=failed', status_code=302)
+        return RedirectResponse('/?login=failed', status_code=302)
     expected_state = request.cookies.get(GOOGLE_OAUTH_STATE_COOKIE)
     if not code or not state or not expected_state or not hmac.compare_digest(state, expected_state):
         raise HTTPException(status_code=400, detail='Invalid Google OAuth state')
@@ -211,10 +211,10 @@ async def google_callback(request: Request, code: str | None = None, state: str 
         info = info_response.json()
     except (requests.RequestException, KeyError, ValueError):
         logger.exception('Google OAuth 登录失败')
-        return RedirectResponse('/static/index.html?login=failed', status_code=302)
+        return RedirectResponse('/?login=failed', status_code=302)
 
     if not info.get('sub') or not info.get('email_verified'):
-        return RedirectResponse('/static/index.html?login=failed', status_code=302)
+        return RedirectResponse('/?login=failed', status_code=302)
 
     user = models.upsert_user(
         google_sub=info['sub'],
@@ -224,7 +224,7 @@ async def google_callback(request: Request, code: str | None = None, state: str 
     )
     request.session['user_id'] = user['id']
     logger.info('用户登录：%s (%s)', user.get('email'), user['id'])
-    redirect = RedirectResponse('/static/index.html?login=success', status_code=302)
+    redirect = RedirectResponse('/?login=success', status_code=302)
     redirect.delete_cookie(GOOGLE_OAUTH_STATE_COOKIE)
     return redirect
 
@@ -290,7 +290,7 @@ async def create_checkout(request: Request, user: dict = Depends(get_current_use
             json={
                 'product_id': product_id,
                 'request_id': request_id,
-                'success_url': f'{base_url}/static/index.html?checkout=success',
+                'success_url': f'{base_url}/?checkout=success',
                 # metadata 会随 webhook 事件一起回来，用于定位本地用户
                 'metadata': {'user_id': user['id'], 'user_email': user.get('email')},
                 'customer': {'email': user.get('email') or ''},

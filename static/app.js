@@ -3,6 +3,7 @@ let pollTimer = null;
 let currentTaskId = null;
 let currentUser = null;
 let paymentConfig = { enabled: false, has_paid: false, test_mode: false };
+let googleClientId = null;
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
