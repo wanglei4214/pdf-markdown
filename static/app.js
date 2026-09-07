@@ -41,30 +41,60 @@ function renderAuthArea() {
     const upgradeBtn = $('#btn-upgrade');
     if (upgradeBtn) upgradeBtn.addEventListener('click', startCheckout);
   } else {
+    // 未登录：显示友好的 Sign in 按钮（不依赖 Google 脚本立即渲染）
     area.innerHTML = `
-      <div class="flex items-center gap-2">
-        <div id="google-btn"></div>
-      </div>`;
+      <button id="manual-signin-btn" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-medium flex items-center gap-2">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+        Sign in
+      </button>
+      <div id="google-btn" style="display:none;"></div>`;
+    const manualBtn = $('#manual-signin-btn');
+    // 如果 Google SDK 已加载，点击时触发 One Tap；否则显示提示
+    manualBtn.addEventListener('click', () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt();
+      } else {
+        alert('Google Sign-In is loading or blocked. Please check your network or disable ad blockers, then refresh the page.');
+      }
+    });
     renderGoogleButton();
   }
 }
 
-function renderGoogleButton() {
+async function renderGoogleButton() {
+  if (!googleClientId) return;
   const container = $('#google-btn');
-  if (!container || !window.google || !googleClientId) return;
-  google.accounts.id.initialize({
+  if (!container) return;
+  
+  // 等待 Google SDK 加载（最多 3 秒）
+  let retries = 30;
+  while (!window.google?.accounts?.id && retries-- > 0) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+  
+  if (!window.google?.accounts?.id) {
+    console.warn('Google Identity Services 脚本加载失败，可能被网络或广告拦截插件阻止');
+    return;
+  }
+
+  window.google.accounts.id.initialize({
     client_id: googleClientId,
     callback: handleGoogleCredential,
+    auto_select: false,
   });
-  google.accounts.id.renderButton(container, {
-    type: 'standard',
+  
+  // 渲染官方按钮到隐藏容器（备用）
+  window.google.accounts.id.renderButton(container, {
     theme: 'outline',
-    size: 'medium',
+    size: 'large',
     text: 'signin_with',
+    shape: 'rectangular',
   });
 }
 
-async function handleGoogleCredential(response) {
+async function handleGoogleCallback(response) {
   try {
     const res = await fetch(`${API_BASE}/api/auth/google`, {
       method: 'POST',
@@ -151,7 +181,7 @@ async function initAuth() {
 
 function requireLogin() {
   if (!currentUser) {
-    alert('Please sign in with your Google account first');
+    alert('Please sign in with Google to use this feature');
     return false;
   }
   return true;
