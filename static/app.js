@@ -45,7 +45,7 @@ function renderAuthArea() {
     area.innerHTML = `
       <button id="manual-signin-btn" class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
         </svg>
         Sign in
       </button>
@@ -155,8 +155,11 @@ async function initAuth() {
   } catch (e) {
     currentUser = null;
   }
+  
+  // 3. 获取支付配置并渲染认证区（此时 googleClientId 已拿到）
   if (currentUser) await loadPaymentConfig();
   renderAuthArea();
+  
   if (currentUser) {
     loadTasks();
     // 从 Creem 支付成功跳回时提示用户（权益以 webhook 为准，稍后自动刷新）
