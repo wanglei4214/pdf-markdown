@@ -167,6 +167,10 @@ async def auth_google(request: Request):
         info = id_token.verify_oauth2_token(
             credential, google_requests.Request(), GOOGLE_CLIENT_ID
         )
+        if info.get('iss') not in ('accounts.google.com', 'https://accounts.google.com'):
+            raise ValueError('Invalid token issuer')
+        if not info.get('email_verified'):
+            raise ValueError('Google account email is not verified')
     except ValueError:
         logger.warning('Google ID Token 校验失败', exc_info=True)
         raise HTTPException(status_code=401, detail='Google login verification failed')

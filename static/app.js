@@ -3,6 +3,8 @@ let pollTimer = null;
 let currentTaskId = null;
 let currentUser = null;
 let googleClientId = null;
+let googleAuthReady = false;
+let googleInitPromise = null;
 let paymentConfig = { enabled: false, has_paid: false, test_mode: false };
 
 const $ = (sel) => document.querySelector(sel);
@@ -12,10 +14,6 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 function renderAuthArea() {
   const area = $('#auth-area');
-  if (!googleClientId) {
-    area.innerHTML = '';
-    return;
-  }
   if (currentUser) {
     const name = currentUser.name || currentUser.email || 'User';
     const avatar = currentUser.picture
@@ -41,63 +39,68 @@ function renderAuthArea() {
     const upgradeBtn = $('#btn-upgrade');
     if (upgradeBtn) upgradeBtn.addEventListener('click', startCheckout);
   } else {
-    // 未登录：显示友好的 Sign in 按钮（不依赖 Google 脚本立即渲染）
     area.innerHTML = `
-      <button id="manual-signin-btn" class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+      <button id="manual-signin-btn" type="button" disabled class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm disabled:cursor-wait disabled:opacity-60">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 17l5-5-5-5m5 5H3m11-7h4a2 2 0 012 2v10a2 2 0 01-2 2h-4"/>
         </svg>
         Sign in
-      </button>
-      <div id="google-btn" style="display:none;"></div>`;
+      </button>`;
     const manualBtn = $('#manual-signin-btn');
-    // 如果 Google SDK 已加载，点击时触发 One Tap；否则显示提示
     manualBtn.addEventListener('click', () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.prompt();
-      } else {
+      if (!googleAuthReady) {
         alert('Google Sign-In is loading or blocked. Please check your network or disable ad blockers, then refresh the page.');
+        return;
+      }
+      window.google.accounts.id.prompt();
+    });
+    initializeGoogleSignIn().then((ready) => {
+      if (ready && manualBtn.isConnected) {
+        manualBtn.disabled = false;
       }
     });
-    // 异步初始化 Google 按钮（不阻塞渲染）
-    if (googleClientId) {
-      renderGoogleButton();
-    }
   }
 }
 
-async function renderGoogleButton() {
-  if (!googleClientId) return;
-  const container = $('#google-btn');
-  if (!container) return;
-  
-  // 等待 Google SDK 加载（最多 3 秒）
-  let retries = 30;
-  while (!window.google?.accounts?.id && retries-- > 0) {
-    await new Promise(r => setTimeout(r, 100));
-  }
-  
-  if (!window.google?.accounts?.id) {
-    console.warn('Google Identity Services 脚本加载失败，可能被网络或广告拦截插件阻止');
-    return;
-  }
+function initializeGoogleSignIn() {
+  if (!googleClientId) return Promise.resolve(false);
+  if (googleAuthReady) return Promise.resolve(true);
+  if (googleInitPromise) return googleInitPromise;
 
-  window.google.accounts.id.initialize({
-    client_id: googleClientId,
-    callback: handleGoogleCredential,
-    auto_select: false,
+  googleInitPromise = (async () => {
+    let retries = 50;
+    while (!window.google?.accounts?.id && retries-- > 0) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    if (!window.google?.accounts?.id) {
+      console.warn('Google Identity Services script failed to load');
+      return false;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleCallback,
+      auto_select: false,
+    });
+    googleAuthReady = true;
+    return true;
+  })().catch((error) => {
+    console.error('Google Sign-In initialization failed', error);
+    return false;
+  }).finally(() => {
+    if (!googleAuthReady) googleInitPromise = null;
   });
-  
-  // 渲染官方按钮到隐藏容器（备用）
-  window.google.accounts.id.renderButton(container, {
-    theme: 'outline',
-    size: 'large',
-    text: 'signin_with',
-    shape: 'rectangular',
-  });
+
+  return googleInitPromise;
 }
 
 async function handleGoogleCallback(response) {
+  if (!response?.credential) {
+    alert('Google login failed: no credential was returned');
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/auth/google`, {
       method: 'POST',
@@ -106,8 +109,7 @@ async function handleGoogleCallback(response) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Login failed');
-    currentUser = data.user;
-    renderAuthArea();
+    currentUser = data.user || null;
     refreshAfterAuth();
   } catch (err) {
     alert('Google login failed: ' + err.message);
@@ -115,8 +117,18 @@ async function handleGoogleCallback(response) {
 }
 
 async function logout() {
-  await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST' });
-  if (window.google) google.accounts.id.disableAutoSelect();
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST' });
+    if (!res.ok) throw new Error('Logout failed');
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
+
+  if (window.google?.accounts?.id) {
+    window.google.accounts.id.disableAutoSelect();
+    window.google.accounts.id.cancel();
+  }
   currentUser = null;
   stopPolling();
   renderAuthArea();
@@ -137,42 +149,40 @@ function refreshAfterAuth() {
 }
 
 async function initAuth() {
-  // 1. 先获取后端配置（包括 GOOGLE_CLIENT_ID）
   try {
-    const res = await fetch(`${API_BASE}/api/auth/config`);
-    if (res.ok) {
-      const config = await res.json();
+    const [configRes, sessionRes] = await Promise.all([
+      fetch(`${API_BASE}/api/auth/config`),
+      fetch(`${API_BASE}/api/auth/me`),
+    ]);
+
+    if (configRes.ok) {
+      const config = await configRes.json();
       googleClientId = config.google_client_id || null;
     }
-  } catch (e) {
-    console.warn('无法获取认证配置', e);
+
+    if (sessionRes.ok) {
+      const session = await sessionRes.json();
+      currentUser = session.user || null;
+    }
+  } catch (error) {
+    currentUser = null;
+    console.warn('Failed to initialize authentication', error);
   }
 
-  // 2. 检查会话是否已登录
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/me`);
-    if (res.ok) {
-      currentUser = await res.json();
-    } else {
-      currentUser = null;
-    }
-  } catch (e) {
-    currentUser = null;
-  }
-  
-  // 3. 根据登录状态加载数据并渲染
-  if (currentUser) {
-    await loadPaymentConfig();
-    renderAuthArea();
-    loadTasks();
-    // 从 Creem 支付成功跳回时提示用户（权益以 webhook 为准，稍后自动刷新）
-    showPaymentSuccess();
-    if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
-      setTimeout(() => { loadPaymentConfig().then(renderAuthArea); }, 3000);
-    }
-  } else {
+  if (!currentUser) {
+    paymentConfig = { enabled: false, has_paid: false, test_mode: false };
     renderAuthArea();
     $('#tasks-list').innerHTML = '<p class="text-gray-500">Please sign in to view your tasks</p>';
+    return;
+  }
+
+  await loadPaymentConfig();
+  renderAuthArea();
+  loadTasks();
+  showPaymentSuccess();
+
+  if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
+    setTimeout(() => { loadPaymentConfig().then(renderAuthArea); }, 3000);
   }
 }
 
