@@ -4,11 +4,13 @@ import hmac
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import secrets
 import shutil
 import threading
 import traceback
 import uuid
 from pathlib import Path
+from urllib.parse import urlencode
 
 import requests
 
@@ -18,8 +20,6 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 
 import models
 from ocr_engine import OcrEngine
@@ -27,6 +27,9 @@ from ocr_engine import OcrEngine
 # Google 登录配置：在 Google Cloud Console 创建 OAuth 2.0 Client ID（Web application），
 # 并把访问来源（如 http://localhost:8000）加入 Authorized JavaScript origins。
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_REDIRECT_URI = 'https://pdf.my99ai.com/api/auth/google/callback'
+GOOGLE_OAUTH_STATE_COOKIE = 'google_oauth_state'
 SESSION_SECRET_KEY = os.getenv('SESSION_SECRET_KEY', 'dev-secret-change-me')
 
 # Creem 支付配置：Dashboard → Developers 获取 API Key 与 Webhook Secret（whsec_ 开头）
@@ -145,35 +148,74 @@ def get_current_user(request: Request) -> dict:
     return user
 
 
-@app.get('/api/auth/config')
-async def auth_config():
-    """前端据此初始化 Google 登录按钮；未配置时隐藏登录入口。"""
-    return {'google_client_id': GOOGLE_CLIENT_ID}
+@app.get('/api/auth/google/login')
+async def google_login():
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=503, detail='Google OAuth is not configured on the server')
+
+    state = secrets.token_urlsafe(32)
+    params = urlencode({
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'state': state,
+        'access_type': 'online',
+        'prompt': 'select_account',
+    })
+    redirect = RedirectResponse(
+        url=f'https://accounts.google.com/o/oauth2/v2/auth?{params}',
+        status_code=302,
+    )
+    redirect.set_cookie(
+        GOOGLE_OAUTH_STATE_COOKIE,
+        state,
+        max_age=600,
+        httponly=True,
+        secure=os.getenv('COOKIE_SECURE', 'false').lower() == 'true',
+        samesite='lax',
+    )
+    return redirect
 
 
-@app.post('/api/auth/google')
-async def auth_google(request: Request):
-    if not GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+@app.get('/api/auth/google/callback')
+async def google_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None):
+    if error:
+        return RedirectResponse('/static/index.html?login=failed', status_code=302)
+    expected_state = request.cookies.get(GOOGLE_OAUTH_STATE_COOKIE)
+    if not code or not state or not expected_state or not hmac.compare_digest(state, expected_state):
+        raise HTTPException(status_code=400, detail='Invalid Google OAuth state')
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=503, detail='Google OAuth is not configured on the server')
+
     try:
-        body = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail='Invalid request body')
-    credential = body.get('credential') if isinstance(body, dict) else None
-    if not credential:
-        raise HTTPException(status_code=400, detail='Missing credential')
-    try:
-        # 验证 JWT 签名、过期时间与受众（aud 必须是本应用的 Client ID）
-        info = id_token.verify_oauth2_token(
-            credential, google_requests.Request(), GOOGLE_CLIENT_ID
+        token_response = requests.post(
+            'https://oauth2.googleapis.com/token',
+            data={
+                'code': code,
+                'client_id': GOOGLE_CLIENT_ID,
+                'client_secret': GOOGLE_CLIENT_SECRET,
+                'redirect_uri': GOOGLE_REDIRECT_URI,
+                'grant_type': 'authorization_code',
+            },
+            timeout=15,
         )
-        if info.get('iss') not in ('accounts.google.com', 'https://accounts.google.com'):
-            raise ValueError('Invalid token issuer')
-        if not info.get('email_verified'):
-            raise ValueError('Google account email is not verified')
-    except ValueError:
-        logger.warning('Google ID Token 校验失败', exc_info=True)
-        raise HTTPException(status_code=401, detail='Google login verification failed')
+        token_response.raise_for_status()
+        tokens = token_response.json()
+        info_response = requests.get(
+            'https://openidconnect.googleapis.com/v1/userinfo',
+            headers={'Authorization': f"Bearer {tokens['access_token']}"},
+            timeout=15,
+        )
+        info_response.raise_for_status()
+        info = info_response.json()
+    except (requests.RequestException, KeyError, ValueError):
+        logger.exception('Google OAuth 登录失败')
+        return RedirectResponse('/static/index.html?login=failed', status_code=302)
+
+    if not info.get('sub') or not info.get('email_verified'):
+        return RedirectResponse('/static/index.html?login=failed', status_code=302)
+
     user = models.upsert_user(
         google_sub=info['sub'],
         email=info.get('email'),
@@ -182,7 +224,19 @@ async def auth_google(request: Request):
     )
     request.session['user_id'] = user['id']
     logger.info('用户登录：%s (%s)', user.get('email'), user['id'])
-    return {'user': _public_user(user)}
+    redirect = RedirectResponse('/static/index.html?login=success', status_code=302)
+    redirect.delete_cookie(GOOGLE_OAUTH_STATE_COOKIE)
+    return redirect
+
+
+@app.get('/api/auth/config')
+async def auth_config():
+    return {'google_client_id': GOOGLE_CLIENT_ID}
+
+
+@app.post('/api/auth/google')
+async def auth_google(request: Request):
+    raise HTTPException(status_code=410, detail='Google ID token login is no longer supported')
 
 
 @app.get('/api/auth/me')

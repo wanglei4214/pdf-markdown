@@ -2,9 +2,6 @@ const API_BASE = '';
 let pollTimer = null;
 let currentTaskId = null;
 let currentUser = null;
-let googleClientId = null;
-let googleAuthReady = false;
-let googleInitPromise = null;
 let paymentConfig = { enabled: false, has_paid: false, test_mode: false };
 
 const $ = (sel) => document.querySelector(sel);
@@ -40,79 +37,15 @@ function renderAuthArea() {
     if (upgradeBtn) upgradeBtn.addEventListener('click', startCheckout);
   } else {
     area.innerHTML = `
-      <button id="manual-signin-btn" type="button" disabled class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm disabled:cursor-wait disabled:opacity-60">
+      <button id="manual-signin-btn" type="button" class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 17l5-5-5-5m5 5H3m11-7h4a2 2 0 012 2v10a2 2 0 01-2 2h-4"/>
         </svg>
         Sign in
       </button>`;
-    const manualBtn = $('#manual-signin-btn');
-    manualBtn.addEventListener('click', () => {
-      if (!googleAuthReady) {
-        alert('Google Sign-In is loading or blocked. Please check your network or disable ad blockers, then refresh the page.');
-        return;
-      }
-      window.google.accounts.id.prompt();
+    $('#manual-signin-btn').addEventListener('click', () => {
+      window.location.href = `${API_BASE}/api/auth/google/login`;
     });
-    initializeGoogleSignIn().then((ready) => {
-      if (ready && manualBtn.isConnected) {
-        manualBtn.disabled = false;
-      }
-    });
-  }
-}
-
-function initializeGoogleSignIn() {
-  if (!googleClientId) return Promise.resolve(false);
-  if (googleAuthReady) return Promise.resolve(true);
-  if (googleInitPromise) return googleInitPromise;
-
-  googleInitPromise = (async () => {
-    let retries = 50;
-    while (!window.google?.accounts?.id && retries-- > 0) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-
-    if (!window.google?.accounts?.id) {
-      console.warn('Google Identity Services script failed to load');
-      return false;
-    }
-
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: handleGoogleCallback,
-      auto_select: false,
-    });
-    googleAuthReady = true;
-    return true;
-  })().catch((error) => {
-    console.error('Google Sign-In initialization failed', error);
-    return false;
-  }).finally(() => {
-    if (!googleAuthReady) googleInitPromise = null;
-  });
-
-  return googleInitPromise;
-}
-
-async function handleGoogleCallback(response) {
-  if (!response?.credential) {
-    alert('Google login failed: no credential was returned');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential: response.credential }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Login failed');
-    currentUser = data.user || null;
-    refreshAfterAuth();
-  } catch (err) {
-    alert('Google login failed: ' + err.message);
   }
 }
 
@@ -146,6 +79,17 @@ function refreshAfterAuth() {
     $('#tasks-list').innerHTML = '<p class="text-gray-500">Please sign in to view your tasks</p>';
     $('#upload-status').classList.add('hidden');
   }
+}
+
+async function handleLoginResult() {
+  const params = new URLSearchParams(window.location.search);
+  const loginStatus = params.get('login');
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  if (loginStatus === 'failed') {
+    alert('Google login failed. Please try again.');
+  }
+  await initAuth();
 }
 
 async function initAuth() {
@@ -561,5 +505,5 @@ function setupNav() {
 document.addEventListener('DOMContentLoaded', () => {
   setupUpload();
   setupNav();
-  initAuth();
+  handleLoginResult();
 });

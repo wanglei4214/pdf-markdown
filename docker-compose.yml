@@ -13,6 +13,7 @@ services:
       # Google 登录：Google Cloud Console 中创建 OAuth 2.0 Client ID（Web application）
       # Client ID 是公开值（前端也会用到），可作为默认值写在这里
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-724994158367-9cva8vq6o80cfitkfut7fcis64d7hhde.apps.googleusercontent.com}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:?请在 .env 文件中设置 GOOGLE_CLIENT_SECRET}"
       # Session cookie 签名密钥，必须在 .env 中注入随机值，未设置则容器拒绝启动
       # 生成方法：python -c "import secrets;print(secrets.token_urlsafe(48))"
       SESSION_SECRET_KEY: "${SESSION_SECRET_KEY:?请在 .env 文件中设置 SESSION_SECRET_KEY}"
