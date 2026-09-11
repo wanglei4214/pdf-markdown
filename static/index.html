@@ -41,6 +41,56 @@
         <input type="file" id="file-input" accept=".pdf" class="hidden">
       </div>
       <div id="upload-status" class="mt-4 hidden"></div>
+
+      <!-- FAQ -->
+      <section id="faq" class="mt-12">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Frequently asked questions</h2>
+        <p class="text-gray-500 mb-6">Everything about converting PDFs to Markdown with this tool.</p>
+        <div class="space-y-3">
+          <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
+              Is PDF to Markdown free?
+              <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+            </summary>
+            <p class="mt-3 text-sm text-gray-600 leading-relaxed">Yes. The core converter — uploading a PDF, OCR for scanned documents, previewing the result, and copying or downloading the Markdown — is free. An optional Pro upgrade helps cover OCR server cost and supports continued development. See the <a href="pricing.html" class="text-indigo-600 hover:underline">pricing page</a>.</p>
+          </details>
+          <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
+              Can it convert scanned PDFs?
+              <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+            </summary>
+            <p class="mt-3 text-sm text-gray-600 leading-relaxed">Yes. Both scanned (image-only) and text-based PDFs are supported. Scanned pages are processed with OCR (optical character recognition) on the server, so large documents may take longer and run in the background. You can watch progress in the Tasks tab.</p>
+          </details>
+          <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
+              What file types and size are supported?
+              <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+            </summary>
+            <p class="mt-3 text-sm text-gray-600 leading-relaxed">PDF files only (.pdf). Very large files are rejected if they exceed the server upload limit, and extremely large documents take longer to process because OCR runs one task at a time.</p>
+          </details>
+          <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
+              Are my files stored? Who can see them?
+              <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+            </summary>
+            <p class="mt-3 text-sm text-gray-600 leading-relaxed">Files are processed on the server so you can preview and re-download results from your task history. Tasks are tied to the account that created them — other users cannot see your files. You can delete any task (and its files) yourself. See the <a href="privacy.html" class="text-indigo-600 hover:underline">Privacy Policy</a>.</p>
+          </details>
+          <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
+              Why do I need to sign in?
+              <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+            </summary>
+            <p class="mt-3 text-sm text-gray-600 leading-relaxed">Sign-in keeps your uploads and conversion results linked to your account, and keeps processing jobs private. We use Google Sign-In and only request your basic profile (email, name, picture) — we never access your Google Drive or other data.</p>
+          </details>
+          <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
+              Does it keep tables and the table of contents?
+              <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+            </summary>
+            <p class="mt-3 text-sm text-gray-600 leading-relaxed">The output preserves headings and structure as Markdown, and tables are converted to Markdown tables. A table-of-contents panel is generated from the document so you can navigate long files. OCR results — especially for complex tables — should be reviewed before use.</p>
+          </details>
+        </div>
+      </section>
     </section>
 
     <!-- Tasks View -->
@@ -73,55 +123,6 @@
       </div>
     </section>
 
-    <!-- FAQ -->
-    <section id="faq" class="mt-12">
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Frequently asked questions</h2>
-      <p class="text-gray-500 mb-6">Everything about converting PDFs to Markdown with this tool.</p>
-      <div class="space-y-3">
-        <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-          <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
-            Is PDF to Markdown free?
-            <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-600 leading-relaxed">Yes. The core converter — uploading a PDF, OCR for scanned documents, previewing the result, and copying or downloading the Markdown — is free. An optional Pro upgrade helps cover OCR server cost and supports continued development. See the <a href="pricing.html" class="text-indigo-600 hover:underline">pricing page</a>.</p>
-        </details>
-        <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-          <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
-            Can it convert scanned PDFs?
-            <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-600 leading-relaxed">Yes. Both scanned (image-only) and text-based PDFs are supported. Scanned pages are processed with OCR (optical character recognition) on the server, so large documents may take longer and run in the background. You can watch progress in the Tasks tab.</p>
-        </details>
-        <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-          <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
-            What file types and size are supported?
-            <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-600 leading-relaxed">PDF files only (.pdf). Very large files are rejected if they exceed the server upload limit, and extremely large documents take longer to process because OCR runs one task at a time.</p>
-        </details>
-        <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-          <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
-            Are my files stored? Who can see them?
-            <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-600 leading-relaxed">Files are processed on the server so you can preview and re-download results from your task history. Tasks are tied to the account that created them — other users cannot see your files. You can delete any task (and its files) yourself. See the <a href="privacy.html" class="text-indigo-600 hover:underline">Privacy Policy</a>.</p>
-        </details>
-        <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-          <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
-            Why do I need to sign in?
-            <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-600 leading-relaxed">Sign-in keeps your uploads and conversion results linked to your account, and keeps processing jobs private. We use Google Sign-In and only request your basic profile (email, name, picture) — we never access your Google Drive or other data.</p>
-        </details>
-        <details class="group bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-          <summary class="flex items-center justify-between cursor-pointer font-medium text-gray-800">
-            Does it keep tables and the table of contents?
-            <span class="ml-4 text-indigo-500 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
-          </summary>
-          <p class="mt-3 text-sm text-gray-600 leading-relaxed">The output preserves headings and structure as Markdown, and tables are converted to Markdown tables. A table-of-contents panel is generated from the document so you can navigate long files. OCR results — especially for complex tables — should be reviewed before use.</p>
-        </details>
-      </div>
-    </section>
   </div>
 
   <footer class="border-t border-gray-200 bg-white mt-12">
@@ -153,6 +154,6 @@
     </div>
   </footer>
 
-  <script src="app.js?v=20260907-4"></script>
+  <script src="app.js?v=20260911-1"></script>
 </body>
 </html>
