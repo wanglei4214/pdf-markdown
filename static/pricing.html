@@ -134,6 +134,12 @@
     const payNowBtn = document.getElementById('pay-now-btn');
     const payNowLabel = document.getElementById('pay-now-label');
 
+    // 页面加载时重置按钮状态（防止浏览器后退缓存残留）
+    if (payNowBtn) {
+      payNowBtn.disabled = false;
+      payNowLabel.textContent = 'Pay now';
+    }
+
     if (payNowBtn) payNowBtn.addEventListener('click', handlePayNow);
 
     async function handlePayNow() {
@@ -161,7 +167,10 @@
           // 未登录 → 存意图到 sessionStorage，跳 Google 登录
           sessionStorage.setItem('pending_intent', 'checkout');
           payNowLabel.textContent = 'Redirecting to login…';
-          window.location.href = `${API_BASE}/api/auth/google/login`;
+          // 延迟 100ms 确保 sessionStorage 写入完成
+          setTimeout(() => {
+            window.location.href = `${API_BASE}/api/auth/google/login`;
+          }, 100);
         }
       } catch (err) {
         console.error('Pay now failed:', err);
