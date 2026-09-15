@@ -8,6 +8,14 @@ from pathlib import Path
 DB_PATH = Path(os.getenv('DB_PATH', Path(__file__).with_name('tasks.db')))
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+# 每月页数配额：免费用户 200 页/月，Pro（已付费）用户 2000 页/月；按自然月重置
+FREE_MONTHLY_PAGES = 200
+PRO_MONTHLY_PAGES = 2000
+
+
+def _current_month() -> str:
+    return datetime.now().strftime('%Y-%m')
+
 
 def _connect():
     """新建连接并开启 WAL 与忙等待，降低多线程并发读写时的锁冲突。"""
@@ -29,6 +37,12 @@ def init_db():
             created_at TEXT NOT NULL
         )
     ''')
+    # 兼容旧库：users 表已存在时补齐配额列
+    existing_user_cols = {row[1] for row in conn.execute('PRAGMA table_info(users)')}
+    if 'used_pages' not in existing_user_cols:
+        conn.execute('ALTER TABLE users ADD COLUMN used_pages INTEGER NOT NULL DEFAULT 0')
+    if 'quota_month' not in existing_user_cols:
+        conn.execute('ALTER TABLE users ADD COLUMN quota_month TEXT')
     conn.execute('''
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
@@ -189,14 +203,104 @@ def mark_orders_revoked(creem_order_id: str | None = None) -> None:
     conn.close()
 
 
-def has_paid_order(user_id: str) -> bool:
+def revoke_order_by_request(request_id: str) -> None:
+    """按幂等键撤销订单（订阅取消/退款事件回传 request_id 时使用）。"""
     conn = _connect()
-    row = conn.execute(
+    conn.execute(
+        "UPDATE orders SET status = 'revoked', updated_at = ? WHERE request_id = ?",
+        (_now(), request_id))
+    conn.commit()
+    conn.close()
+
+
+def revoke_all_orders(user_id: str) -> None:
+    """撤销用户全部已支付订单（兜底降级：事件只带 metadata.user_id 时使用）。"""
+    conn = _connect()
+    conn.execute(
+        "UPDATE orders SET status = 'revoked', updated_at = ? WHERE user_id = ? AND status = 'paid'",
+        (_now(), user_id))
+    conn.commit()
+    conn.close()
+
+
+def _has_paid_order_conn(conn, user_id: str) -> bool:
+    return conn.execute(
         "SELECT 1 FROM orders WHERE user_id = ? AND status = 'paid' LIMIT 1",
         (user_id,)
-    ).fetchone()
+    ).fetchone() is not None
+
+
+def has_paid_order(user_id: str) -> bool:
+    conn = _connect()
+    result = _has_paid_order_conn(conn, user_id)
     conn.close()
-    return row is not None
+    return result
+
+
+# ---------- 页数配额 ----------
+
+def quota_status(user_id: str) -> dict:
+    """返回当前配额状态；跨月时自动清零并记录新月份。"""
+    conn = _connect()
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        'SELECT used_pages, quota_month FROM users WHERE id = ?', (user_id,)
+    ).fetchone()
+    month = _current_month()
+    if not row:
+        conn.close()
+        return {'plan': 'free', 'used_pages': 0, 'limit': FREE_MONTHLY_PAGES, 'month': month}
+    used = row['used_pages'] if row['quota_month'] == month else 0
+    if row['quota_month'] != month:
+        conn.execute(
+            'UPDATE users SET used_pages = 0, quota_month = ? WHERE id = ?', (month, user_id)
+        )
+        conn.commit()
+    pro = _has_paid_order_conn(conn, user_id)
+    conn.close()
+    return {
+        'plan': 'pro' if pro else 'free',
+        'used_pages': used,
+        'limit': PRO_MONTHLY_PAGES if pro else FREE_MONTHLY_PAGES,
+        'month': month,
+    }
+
+
+def try_consume_pages(user_id: str, n: int) -> dict | None:
+    """上传时预扣页数；剩余配额不足返回 None。跨月时先清零再扣。"""
+    conn = _connect()
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        'SELECT used_pages, quota_month FROM users WHERE id = ?', (user_id,)
+    ).fetchone()
+    if not row:
+        conn.close()
+        return None
+    month = _current_month()
+    used = row['used_pages'] if row['quota_month'] == month else 0
+    pro = _has_paid_order_conn(conn, user_id)
+    limit = PRO_MONTHLY_PAGES if pro else FREE_MONTHLY_PAGES
+    if used + n > limit:
+        conn.close()
+        return None
+    conn.execute(
+        'UPDATE users SET used_pages = ?, quota_month = ? WHERE id = ?', (used + n, month, user_id)
+    )
+    conn.commit()
+    conn.close()
+    return {'plan': 'pro' if pro else 'free', 'used_pages': used + n,
+            'limit': limit, 'month': month}
+
+
+def refund_pages(user_id: str, n: int) -> None:
+    """任务失败时返还预扣页数。仅当仍处同一计费月时返还，避免冲减新周期配额。"""
+    conn = _connect()
+    conn.execute(
+        'UPDATE users SET used_pages = MAX(0, used_pages - ?) '
+        'WHERE id = ? AND quota_month = ?',
+        (n, user_id, _current_month()))
+    conn.commit()
+    conn.close()
 
 
 def _now():

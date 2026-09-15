@@ -407,6 +407,33 @@ body.result-view footer {
   transform: rotate(45deg);
 }
 
+/* 支付品牌标识 chips（pricing 页） */
+.pay-methods {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.pay-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: 0.02em;
+}
+
+.pay-chip-dark {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
 /* 隐私政策 / 服务条款 等文字页面排版 */
 .prose-page h3 {
   color: #1f2937;

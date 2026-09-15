@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import requests
+from pypdf import PdfReader
 
 logger = logging.getLogger('pdf2md')
 
@@ -258,11 +259,12 @@ async def auth_logout(request: Request):
 
 @app.get('/api/payments/config')
 async def payments_config(user: dict = Depends(get_current_user)):
-    """前端据此决定是否显示付费按钮。"""
+    """前端据此决定是否显示付费按钮，并展示页数配额。"""
     return {
         'enabled': bool(CREEM_API_KEY and CREEM_PRODUCT_ID),
         'test_mode': CREEM_TEST_MODE,
         'has_paid': models.has_paid_order(user['id']),
+        'quota': models.quota_status(user['id']),
     }
 
 
@@ -319,7 +321,7 @@ async def list_payment_orders(user: dict = Depends(get_current_user)):
     return models.list_orders(user['id'])
 
 
-@app.post('/api/webhooks/creem')
+@app.post('/api/creem/webhook')
 async def creem_webhook(request: Request):
     """Creem 事件回调：必须用原始请求体验签，不能先解析 JSON。"""
     raw_body = await request.body()
@@ -371,13 +373,36 @@ async def creem_webhook(request: Request):
                 logger.info('支付成功，已开通权益：request_id=%s order=%s',
                             request_id, order.get('id'))
 
+        elif event_type in ('subscription.paid', 'subscription.active'):
+            # 订阅续费 / 激活：本地有对应订单则标记为已支付，保证续期后权益不中断
+            request_id = obj.get('request_id') or ''
+            if request_id:
+                local_order = models.get_order_by_request(request_id)
+                if local_order and local_order['status'] != 'paid':
+                    order = obj.get('order') or {}
+                    models.mark_order_paid(
+                        request_id=request_id,
+                        creem_order_id=order.get('id') or obj.get('id'),
+                        product_name=(obj.get('product') or {}).get('name'),
+                        amount=order.get('amount'),
+                        currency=order.get('currency'),
+                    )
+                    logger.info('订阅续期，权益已延续：request_id=%s', request_id)
+
         elif event_type in ('subscription.canceled', 'subscription.expired',
                             'subscription.unpaid', 'refund.created'):
-            # 退款 / 订阅失效：撤销权益。退款事件里订单号在 object.order.id
+            # 退款 / 订阅失效：撤销权益。依次尝试 request_id、订单号、metadata.user_id 兜底，
+            # 避免续费单号与初次下单不一致导致漏降级
+            request_id = obj.get('request_id') or ''
+            if request_id:
+                models.revoke_order_by_request(request_id)
             order_info = obj.get('order') or {}
             models.mark_orders_revoked(creem_order_id=order_info.get('id') or obj.get('id'))
+            metadata = obj.get('metadata') or {}
+            if metadata.get('user_id'):
+                models.revoke_all_orders(metadata['user_id'])
             logger.info('已撤销权益：事件=%s', event_type)
-        # 其余事件（subscription.paid / active / past_due 等）当前无需处理
+        # 其余事件（如 subscription.past_due）当前无需处理
     except Exception:
         logger.exception('处理 Creem webhook 失败')
         # 返回 500 让 Creem 按退避策略重试（最多 5 次）
@@ -409,20 +434,41 @@ async def upload(file: UploadFile = File(...),
     file_size = upload_path.stat().st_size
     models.update_task_status(task['id'], filename=str(upload_path), file_size=file_size)
 
+    # 上传时快速数页并预扣配额；任务处理失败会返还。
+    # 数页失败的文件按 1 页放行（损坏文件会在 OCR 阶段失败并返还配额）。
+    try:
+        page_count = len(PdfReader(str(upload_path)).pages)
+    except Exception:
+        page_count = 1
+        logger.warning('无法读取 PDF 页数，按 1 页计：%s', upload_path)
+
+    consume = models.try_consume_pages(user['id'], page_count)
+    if consume is None:
+        quota = models.quota_status(user['id'])
+        upload_path.unlink(missing_ok=True)
+        models.delete_task(task['id'])
+        logger.info('用户 %s 配额不足：需 %d 页，剩余 %d/%d', user['id'], page_count,
+                    max(0, quota['limit'] - quota['used_pages']), quota['limit'])
+        raise HTTPException(status_code=403, detail={
+            'error': 'quota_exceeded',
+            'pages': page_count,
+            **quota,
+        })
+
     # 后台启动 OCR
-    _start_ocr_thread(task['id'], str(upload_path))
+    _start_ocr_thread(task['id'], str(upload_path), reserved_pages=page_count)
 
     return models.get_task(task['id'])
 
 
-def _start_ocr_thread(task_id: str, pdf_path: str):
-    """启动一个后台 OCR 线程，并记录到活跃线程表。"""
-    thread = threading.Thread(target=_run_ocr, args=(task_id, pdf_path), daemon=True)
+def _start_ocr_thread(task_id: str, pdf_path: str, reserved_pages: int = 0):
+    """启动一个后台 OCR 线程，并记录到活跃线程表。reserved_pages 用于失败返还配额。"""
+    thread = threading.Thread(target=_run_ocr, args=(task_id, pdf_path, reserved_pages), daemon=True)
     _active_threads[task_id] = thread
     thread.start()
 
 
-def _run_ocr(task_id: str, pdf_path: str):
+def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
     output_path = OUTPUT_DIR / f'{task_id}.md'
 
     def on_progress(current: int, total: int):
@@ -462,6 +508,10 @@ def _run_ocr(task_id: str, pdf_path: str):
         logger.info('任务 %s 处理完成', task_id)
     except Exception:
         logger.exception('任务 %s 处理失败', task_id)
+        if reserved_pages:
+            task = models.get_task(task_id)
+            if task and task.get('user_id'):
+                models.refund_pages(task['user_id'], reserved_pages)
         models.update_task_status(
             task_id,
             status='failed',
