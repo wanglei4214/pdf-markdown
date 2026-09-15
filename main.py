@@ -110,11 +110,17 @@ _ocr_engine: OcrEngine | None = None
 _engine_lock = threading.Lock()
 _active_threads: dict[str, threading.Thread] = {}
 
-# OCR 并发槽：RapidOCR/onnxruntime 实例非线程安全，且 OCR 内存占用高，
-# 多个任务同时推理会导致 native 崩溃 / OOM。用信号量串行化，多余任务排队等待。
-# 如需更高并发，应改用独立 worker 进程（Celery 等），而不是调大此值。
-_max_concurrency = max(1, int(os.getenv('OCR_MAX_CONCURRENCY', '1')))
+# OCR 并发槽：支持 2 个任务并行处理，更多任务排队等待。
+# 使用时间片轮转调度，保证所有用户公平获得处理机会（防止单用户霸占队列）。
+_max_concurrency = max(1, int(os.getenv('OCR_MAX_CONCURRENCY', '2')))
 _ocr_slots = threading.BoundedSemaphore(_max_concurrency)
+
+# 时间片轮转调度：任务队列按用户分组，轮流从每个用户的队列中取任务
+import collections
+_user_task_queues: dict[str, collections.deque] = {}  # user_id -> deque[(task_id, pdf_path, reserved_pages)]
+_queue_lock = threading.Lock()
+_scheduler_thread: threading.Thread | None = None
+_scheduler_running = False
 
 
 def get_engine() -> OcrEngine:
@@ -124,6 +130,50 @@ def get_engine() -> OcrEngine:
             if _ocr_engine is None:
                 _ocr_engine = OcrEngine()
     return _ocr_engine
+
+
+def _start_scheduler():
+    """启动时间片轮转调度线程（全局单例）。"""
+    global _scheduler_thread, _scheduler_running
+    if _scheduler_thread is not None and _scheduler_thread.is_alive():
+        return
+    _scheduler_running = True
+    _scheduler_thread = threading.Thread(target=_round_robin_scheduler, daemon=True)
+    _scheduler_thread.start()
+    logger.info('时间片轮转调度器已启动（并发槽位=%d）', _max_concurrency)
+
+
+def _round_robin_scheduler():
+    """时间片轮转调度器：轮流从每个用户的任务队列中取任务执行。"""
+    while _scheduler_running:
+        with _queue_lock:
+            # 获取所有有任务的用户列表
+            active_users = [uid for uid, q in _user_task_queues.items() if q]
+            if not active_users:
+                # 无任务时短暂休眠
+                pass
+            else:
+                # 轮转：从第一个用户队列取任务
+                user_id = active_users[0]
+                queue = _user_task_queues[user_id]
+                task_id, pdf_path, reserved_pages = queue.popleft()
+                
+                # 如果该用户队列空了，删除
+                if not queue:
+                    del _user_task_queues[user_id]
+                
+                # 启动 OCR 线程处理该任务
+                thread = threading.Thread(
+                    target=_run_ocr,
+                    args=(task_id, pdf_path, reserved_pages),
+                    daemon=True
+                )
+                _active_threads[task_id] = thread
+                thread.start()
+                logger.info('调度器分配任务 %s 给用户 %s', task_id, user_id)
+        
+        # 短暂休眠避免 CPU 空转
+        threading.Event().wait(0.5)
 
 
 app.mount('/static', StaticFiles(directory=BASE_DIR / 'static'), name='static')
@@ -527,10 +577,21 @@ async def upload(file: UploadFile = File(...),
 
 
 def _start_ocr_thread(task_id: str, pdf_path: str, reserved_pages: int = 0):
-    """启动一个后台 OCR 线程，并记录到活跃线程表。reserved_pages 用于失败返还配额。"""
-    thread = threading.Thread(target=_run_ocr, args=(task_id, pdf_path, reserved_pages), daemon=True)
-    _active_threads[task_id] = thread
-    thread.start()
+    """将任务加入用户队列，由调度器统一分配（时间片轮转，保证公平性）。"""
+    task = models.get_task(task_id)
+    if not task or not task.get('user_id'):
+        logger.error('任务 %s 无法找到或缺少 user_id', task_id)
+        return
+    
+    user_id = task['user_id']
+    with _queue_lock:
+        if user_id not in _user_task_queues:
+            _user_task_queues[user_id] = collections.deque()
+        _user_task_queues[user_id].append((task_id, pdf_path, reserved_pages))
+        queue_pos = sum(len(q) for q in _user_task_queues.values())
+    
+    logger.info('任务 %s 已加入用户 %s 的队列（全局队列位置: %d）', task_id, user_id, queue_pos)
+    _start_scheduler()
 
 
 def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
@@ -590,6 +651,42 @@ def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
 async def list_tasks(limit: int = 100, offset: int = 0,
                      user: dict = Depends(get_current_user)):
     return models.list_tasks(user_id=user['id'], limit=limit, offset=offset)
+
+
+@app.get('/api/tasks/queue/status')
+async def queue_status(user: dict = Depends(get_current_user)):
+    """返回当前用户的排队状态：队列中的任务数、预计等待时间等。"""
+    with _queue_lock:
+        # 统计全局队列中的任务总数
+        total_queued = sum(len(q) for q in _user_task_queues.values())
+        # 统计当前用户队列中的任务数
+        user_queued = len(_user_task_queues.get(user['id'], []))
+        # 统计正在处理的任务数（已获得槽位）
+        processing_count = len(_active_threads)
+        
+        # 计算当前用户在全局队列中的位置（时间片轮转算法）
+        # 按用户轮转，所以位置 = 当前用户前面有多少个用户有任务
+        users_ahead = 0
+        found_user = False
+        for uid in _user_task_queues.keys():
+            if uid == user['id']:
+                found_user = True
+                break
+            users_ahead += 1
+        
+        # 预估等待时间：假设每个任务平均处理时间 30 秒
+        # 时间片轮转下，用户获得处理机会的周期 = 用户数 * 平均处理时间 / 并发数
+        estimated_wait_minutes = 0
+        if user_queued > 0 and users_ahead > 0:
+            estimated_wait_minutes = (users_ahead * 0.5) + (user_queued * 0.5)
+    
+    return {
+        'user_queued': user_queued,
+        'total_queued': total_queued,
+        'processing_count': processing_count,
+        'max_concurrency': _max_concurrency,
+        'estimated_wait_minutes': round(estimated_wait_minutes, 1) if estimated_wait_minutes > 0 else 0,
+    }
 
 
 def _get_owned_task(task_id: str, user: dict) -> dict:

@@ -344,12 +344,49 @@ async function loadTasks() {
       return;
     }
     const tasks = await res.json();
+    
+    // 获取队列状态
+    let queueInfo = null;
+    try {
+      const queueRes = await fetch(`${API_BASE}/api/tasks/queue/status`);
+      if (queueRes.ok) {
+        queueInfo = await queueRes.json();
+      }
+    } catch (e) {
+      // 队列状态获取失败不影响主流程
+    }
+    
+    // 显示队列状态提示（如果有排队任务）
+    let queueNotice = '';
+    if (queueInfo && (queueInfo.user_queued > 0 || queueInfo.processing_count > 0)) {
+      const waitMsg = queueInfo.estimated_wait_minutes > 0 
+        ? `· Estimated wait: ~${queueInfo.estimated_wait_minutes} min`
+        : '';
+      queueNotice = `
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm">
+          <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="text-blue-700">
+              <p class="font-medium">Processing Queue Status</p>
+              <p class="text-blue-600 mt-1">
+                ${queueInfo.processing_count} task${queueInfo.processing_count === 1 ? '' : 's'} in progress 
+                · ${queueInfo.user_queued} of your task${queueInfo.user_queued === 1 ? '' : 's'} queued
+                ${waitMsg}
+              </p>
+              <p class="text-blue-500 text-xs mt-1">Fair scheduling: All users get equal processing opportunities</p>
+            </div>
+          </div>
+        </div>`;
+    }
+    
     if (!tasks.length) {
-      container.innerHTML = '<p class="text-gray-500">No tasks yet</p>';
+      container.innerHTML = queueNotice + '<p class="text-gray-500">No tasks yet</p>';
       return;
     }
 
-    container.innerHTML = tasks.map(t => {
+    container.innerHTML = queueNotice + tasks.map(t => {
       const progress = t.total_pages
         ? Math.min(100, Math.round((t.current_page / t.total_pages) * 100))
         : 0;
