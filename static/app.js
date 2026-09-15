@@ -85,21 +85,34 @@ function renderAuthArea() {
       }
     }
     
-    // 头像悬停显示/隐藏 tooltip
+    // 头像悬停显示/隐藏 tooltip，延迟隐藏避免鼠标移动时误关闭
     const profileContainer = $('.user-profile-container');
     const tooltip = $('#quota-tooltip');
+    let hideTimer = null;
     if (profileContainer && tooltip) {
       profileContainer.addEventListener('mouseenter', () => {
+        if (hideTimer) {
+          clearTimeout(hideTimer);
+          hideTimer = null;
+        }
         tooltip.classList.remove('hidden');
       });
       profileContainer.addEventListener('mouseleave', () => {
-        tooltip.classList.add('hidden');
+        hideTimer = setTimeout(() => {
+          tooltip.classList.add('hidden');
+        }, 1000);
       });
       tooltip.addEventListener('mouseenter', () => {
+        if (hideTimer) {
+          clearTimeout(hideTimer);
+          hideTimer = null;
+        }
         tooltip.classList.remove('hidden');
       });
       tooltip.addEventListener('mouseleave', () => {
-        tooltip.classList.add('hidden');
+        hideTimer = setTimeout(() => {
+          tooltip.classList.add('hidden');
+        }, 200);
       });
     }
     
