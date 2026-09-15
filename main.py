@@ -547,7 +547,9 @@ async def upload(file: UploadFile = File(...),
             **quota,
         })
 
-    task = models.create_task(user['id'], file.filename, 0)
+    # 【第二阶段】上传后精确检查：读取实际页数并扣费
+    # 先创建任务（reserved_pages=0），上传文件后再更新 reserved_pages
+    task = models.create_task(user['id'], file.filename, 0, reserved_pages=0)
     upload_path = UPLOAD_DIR / f"{task['id']}.pdf"
 
     try:
@@ -560,7 +562,6 @@ async def upload(file: UploadFile = File(...),
         file.file.close()
 
     file_size = upload_path.stat().st_size
-    models.update_task_status(task['id'], filename=str(upload_path), file_size=file_size)
 
     # 【第二阶段】上传后精确检查：读取实际页数并扣费
     # 数页失败的文件按 1 页放行（损坏文件会在 OCR 阶段失败并返还配额）。
@@ -587,6 +588,9 @@ async def upload(file: UploadFile = File(...),
             **quota,
         })
 
+    # 扣费成功，更新任务的 reserved_pages 和文件信息
+    models.update_task_status(task['id'], filename=str(upload_path), file_size=file_size, reserved_pages=page_count)
+    
     # 后台启动 OCR
     _start_ocr_thread(task['id'], str(upload_path), reserved_pages=page_count)
 
@@ -777,18 +781,20 @@ async def delete_task(task_id: str, user: dict = Depends(get_current_user)):
     _active_threads.pop(task_id, None)
     
     # 【配额返还逻辑】未完成的任务返还页数
-    # - pending/processing: 返还预扣的页数（队列中记录的 reserved_pages 或 total_pages）
+    # - pending/processing: 优先使用数据库中的 reserved_pages，fallback 到队列中的 reserved_pages，最后才用 total_pages
     # - failed: 失败时已经返还过，不重复返还
     # - success: 已完成的任务不返还
     if task_status in ('pending', 'processing'):
-        pages_to_refund = refund_pages_count if refund_pages_count > 0 else total_pages
+        # 优先使用数据库中持久化的 reserved_pages
+        reserved_pages = task.get('reserved_pages', 0) or 0
+        pages_to_refund = reserved_pages if reserved_pages > 0 else (refund_pages_count if refund_pages_count > 0 else total_pages)
         if pages_to_refund > 0:
             models.refund_pages(user_id, pages_to_refund)
-            logger.info('任务 %s 未完成，返还 %d 页配额（status=%s, refund_pages_count=%d, total_pages=%d）', 
-                       task_id, pages_to_refund, task_status, refund_pages_count, total_pages)
+            logger.info('任务 %s 未完成，返还 %d 页配额（status=%s, reserved_pages=%d, refund_pages_count=%d, total_pages=%d）', 
+                       task_id, pages_to_refund, task_status, reserved_pages, refund_pages_count, total_pages)
         else:
-            logger.warning('任务 %s 未完成但无需返还：pages_to_refund=0（refund_pages_count=%d, total_pages=%d）',
-                          task_id, refund_pages_count, total_pages)
+            logger.warning('任务 %s 未完成但无需返还：pages_to_refund=0（reserved_pages=%d, refund_pages_count=%d, total_pages=%d）',
+                          task_id, reserved_pages, refund_pages_count, total_pages)
     
     # 删除文件
     upload_path = UPLOAD_DIR / f'{task_id}.pdf'

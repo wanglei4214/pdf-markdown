@@ -53,6 +53,7 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'pending',
             current_page INTEGER DEFAULT 0,
             total_pages INTEGER DEFAULT 0,
+            reserved_pages INTEGER DEFAULT 0,
             output_path TEXT,
             error_message TEXT,
             created_at TEXT NOT NULL,
@@ -63,6 +64,8 @@ def init_db():
     existing_cols = {row[1] for row in conn.execute('PRAGMA table_info(tasks)')}
     if 'user_id' not in existing_cols:
         conn.execute('ALTER TABLE tasks ADD COLUMN user_id TEXT')
+    if 'reserved_pages' not in existing_cols:
+        conn.execute('ALTER TABLE tasks ADD COLUMN reserved_pages INTEGER DEFAULT 0')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id, created_at)')
     conn.execute('''
         CREATE TABLE IF NOT EXISTS orders (
@@ -324,7 +327,7 @@ def _now():
     return datetime.now().isoformat()
 
 
-def create_task(user_id: str, original_name: str, file_size: int) -> dict:
+def create_task(user_id: str, original_name: str, file_size: int, reserved_pages: int = 0) -> dict:
     task_id = str(uuid.uuid4())
     now = _now()
     task = {
@@ -336,6 +339,7 @@ def create_task(user_id: str, original_name: str, file_size: int) -> dict:
         'status': 'pending',
         'current_page': 0,
         'total_pages': 0,
+        'reserved_pages': reserved_pages,
         'output_path': None,
         'error_message': None,
         'created_at': now,
@@ -344,13 +348,13 @@ def create_task(user_id: str, original_name: str, file_size: int) -> dict:
     conn = sqlite3.connect(DB_PATH)
     conn.execute('''
         INSERT INTO tasks (id, user_id, filename, original_name, file_size, status,
-                           current_page, total_pages, output_path, error_message,
+                           current_page, total_pages, reserved_pages, output_path, error_message,
                            created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         task['id'], task['user_id'], task['filename'], task['original_name'],
         task['file_size'], task['status'], task['current_page'], task['total_pages'],
-        task['output_path'], task['error_message'],
+        task['reserved_pages'], task['output_path'], task['error_message'],
         task['created_at'], task['updated_at']
     ))
     conn.commit()
@@ -397,7 +401,7 @@ def count_tasks_by_status(status: str) -> int:
 
 
 def update_task_status(task_id: str, **kwargs):
-    allowed = {'status', 'current_page', 'total_pages', 'output_path', 'error_message', 'filename', 'file_size'}
+    allowed = {'status', 'current_page', 'total_pages', 'reserved_pages', 'output_path', 'error_message', 'filename', 'file_size'}
     fields = {k: v for k, v in kwargs.items() if k in allowed}
     if not fields:
         return
