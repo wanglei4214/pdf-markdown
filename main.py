@@ -738,6 +738,23 @@ async def download_markdown(task_id: str, user: dict = Depends(get_current_user)
 async def delete_task(task_id: str, user: dict = Depends(get_current_user)):
     task = _get_owned_task(task_id, user)
 
+    # 【关键修复】从队列中移除任务，避免调度器继续处理已删除的任务
+    user_id = task['user_id']
+    with _queue_lock:
+        if user_id in _user_task_queues:
+            # 从用户队列中移除该任务（按 task_id 匹配）
+            queue = _user_task_queues[user_id]
+            _user_task_queues[user_id] = collections.deque(
+                item for item in queue if item[0] != task_id
+            )
+            # 如果队列为空，删除该用户的队列记录
+            if not _user_task_queues[user_id]:
+                del _user_task_queues[user_id]
+    
+    # 清理活动线程记录（注意：不强制停止线程，让其自然结束以避免资源泄漏）
+    _active_threads.pop(task_id, None)
+    
+    # 删除文件
     upload_path = UPLOAD_DIR / f'{task_id}.pdf'
     output_path = OUTPUT_DIR / f'{task_id}.md'
     if upload_path.exists():
@@ -745,7 +762,9 @@ async def delete_task(task_id: str, user: dict = Depends(get_current_user)):
     if output_path.exists():
         output_path.unlink()
 
+    # 删除数据库记录
     models.delete_task(task_id)
+    logger.info('任务 %s 已删除并从队列中移除', task_id)
     return {'ok': True}
 
 

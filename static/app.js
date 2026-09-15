@@ -27,6 +27,9 @@ function renderAuthArea() {
         if (q) {
           const left = Math.max(0, q.limit - q.used_pages);
           planHtml += `<span class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium whitespace-nowrap" title="Page quota, resets on the 1st of each month">${left}/${q.limit} pages left</span>`;
+          
+          // 在上传页面显示配额横幅
+          updateQuotaBanner(left, q.limit);
         }
         planHtml += `<button id="btn-upgrade" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium whitespace-nowrap">Upgrade Pro</button>`;
       }
@@ -146,6 +149,33 @@ function requireLogin() {
     return false;
   }
   return true;
+}
+
+function updateQuotaBanner(remaining, limit) {
+  const banner = $('#quota-banner');
+  const text = $('#quota-text');
+  const action = $('#quota-action');
+  
+  if (!banner || !text) return;
+  
+  banner.classList.remove('hidden');
+  text.textContent = `${remaining} / ${limit} pages remaining`;
+  
+  // 如果剩余页数少于 10 页，显示升级按钮
+  if (remaining < 10) {
+    action?.classList.remove('hidden');
+  } else {
+    action?.classList.add('hidden');
+  }
+  
+  // 配额不足时显示警告样式
+  if (remaining === 0) {
+    banner.className = 'mb-4 p-4 rounded-xl bg-red-50 border border-red-200';
+    text.className = 'text-2xl font-bold text-red-700 mt-1';
+  } else if (remaining < 10) {
+    banner.className = 'mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200';
+    text.className = 'text-2xl font-bold text-amber-700 mt-1';
+  }
 }
 
 // ---------- Creem 支付 ----------
