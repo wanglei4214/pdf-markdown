@@ -109,6 +109,8 @@ models.mark_status_where(
 _ocr_engine: OcrEngine | None = None
 _engine_lock = threading.Lock()
 _active_threads: dict[str, threading.Thread] = {}
+_cancelled_tasks: set[str] = set()  # 被取消的任务ID集合
+_cancelled_lock = threading.Lock()
 
 # OCR 并发槽：支持 2 个任务并行处理，更多任务排队等待。
 # 使用时间片轮转调度，保证所有用户公平获得处理机会（防止单用户霸占队列）。
@@ -626,6 +628,13 @@ def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
         logger.info('任务 %s 等待 OCR 槽位（并发上限 %d）', task_id, _max_concurrency)
         _ocr_slots.acquire()
         try:
+            # 【关键修复】获取槽位后检查任务是否已被取消
+            with _cancelled_lock:
+                if task_id in _cancelled_tasks:
+                    logger.info('任务 %s 已被取消，跳过处理', task_id)
+                    _cancelled_tasks.discard(task_id)
+                    return
+            
             logger.info('任务 %s 开始处理', task_id)
             models.update_task_status(task_id, status='processing', current_page=0, total_pages=0)
             engine = get_engine()
@@ -737,22 +746,45 @@ async def download_markdown(task_id: str, user: dict = Depends(get_current_user)
 @app.delete('/api/tasks/{task_id}')
 async def delete_task(task_id: str, user: dict = Depends(get_current_user)):
     task = _get_owned_task(task_id, user)
+    task_status = task['status']
+    total_pages = task.get('total_pages', 0) or 0
 
-    # 【关键修复】从队列中移除任务，避免调度器继续处理已删除的任务
+    # 【关键修复1】从队列中移除任务，避免调度器继续处理已删除的任务
     user_id = task['user_id']
+    refund_pages_count = 0
     with _queue_lock:
         if user_id in _user_task_queues:
-            # 从用户队列中移除该任务（按 task_id 匹配）
+            # 从用户队列中移除该任务（按 task_id 匹配），同时获取预扣页数
             queue = _user_task_queues[user_id]
-            _user_task_queues[user_id] = collections.deque(
-                item for item in queue if item[0] != task_id
-            )
+            new_queue = collections.deque()
+            for item in queue:
+                if item[0] == task_id:
+                    refund_pages_count = item[2]  # reserved_pages
+                else:
+                    new_queue.append(item)
+            _user_task_queues[user_id] = new_queue
             # 如果队列为空，删除该用户的队列记录
             if not _user_task_queues[user_id]:
                 del _user_task_queues[user_id]
     
-    # 清理活动线程记录（注意：不强制停止线程，让其自然结束以避免资源泄漏）
+    # 【关键修复2】如果任务正在处理，标记为取消，线程会在获取槽位后检查并提前退出
+    if task_id in _active_threads and _active_threads[task_id].is_alive():
+        with _cancelled_lock:
+            _cancelled_tasks.add(task_id)
+        logger.info('任务 %s 正在处理，已标记为取消', task_id)
+    
+    # 清理活动线程记录
     _active_threads.pop(task_id, None)
+    
+    # 【配额返还逻辑】未完成的任务返还页数
+    # - pending/processing: 返还预扣的页数（队列中记录的 reserved_pages 或 total_pages）
+    # - failed: 失败时已经返还过，不重复返还
+    # - success: 已完成的任务不返还
+    if task_status in ('pending', 'processing'):
+        pages_to_refund = refund_pages_count if refund_pages_count > 0 else total_pages
+        if pages_to_refund > 0:
+            models.refund_pages(user_id, pages_to_refund)
+            logger.info('任务 %s 未完成，返还 %d 页配额', task_id, pages_to_refund)
     
     # 删除文件
     upload_path = UPLOAD_DIR / f'{task_id}.pdf'

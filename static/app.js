@@ -37,13 +37,75 @@ function renderAuthArea() {
     area.innerHTML = `
       <div class="flex items-center gap-2">
         ${planHtml}
-        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1.5 pr-3 py-1 shadow-sm">
-          ${avatar}
-          <span class="text-sm text-gray-700 max-w-[120px] md:max-w-[200px] truncate" title="${currentUser.email || ''}">${name}</span>
+        <div class="relative user-profile-container">
+          <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1.5 pr-3 py-1 shadow-sm cursor-pointer hover:bg-gray-50 transition">
+            ${avatar}
+            <span class="text-sm text-gray-700 max-w-[120px] md:max-w-[200px] truncate" title="${currentUser.email || ''}">${name}</span>
+          </div>
+          <div id="quota-tooltip" class="hidden absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
+            <div class="mb-3">
+              <p class="text-xs text-gray-500 mb-1">Current Plan</p>
+              <p class="text-lg font-bold text-indigo-700">${paymentConfig.has_paid ? 'Pro' : 'Free'}${paymentConfig.test_mode ? ' (test)' : ''}</p>
+            </div>
+            <div class="mb-3 pb-3 border-b border-gray-100">
+              <p class="text-xs text-gray-500 mb-1">This Month's Usage</p>
+              <div class="flex items-baseline gap-2">
+                <p class="text-2xl font-bold text-gray-800" id="tooltip-used">-</p>
+                <p class="text-sm text-gray-500">/ <span id="tooltip-limit">-</span> pages</p>
+              </div>
+              <div class="mt-2 w-full bg-gray-100 rounded-full h-2">
+                <div id="tooltip-progress" class="bg-indigo-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mb-3">Quota resets on the 1st of each month</p>
+            ${!paymentConfig.has_paid ? '<a href="pricing.html" class="block w-full text-center px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium mb-2">Upgrade to Pro</a>' : ''}
+            <button id="tooltip-logout" class="block w-full text-center px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-sm">Logout</button>
+          </div>
         </div>
-        <button id="btn-logout" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-sm whitespace-nowrap">Logout</button>
       </div>`;
-    $('#btn-logout').addEventListener('click', logout);
+    
+    // 更新配额 tooltip 数据
+    if (paymentConfig.quota) {
+      const q = paymentConfig.quota;
+      const used = q.used_pages;
+      const limit = q.limit;
+      const usedEl = $('#tooltip-used');
+      const limitEl = $('#tooltip-limit');
+      const progressEl = $('#tooltip-progress');
+      if (usedEl) usedEl.textContent = used.toString();
+      if (limitEl) limitEl.textContent = limit.toString();
+      if (progressEl) {
+        const percentage = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+        progressEl.style.width = percentage + '%';
+        if (percentage >= 90) {
+          progressEl.className = 'bg-red-600 h-2 rounded-full transition-all';
+        } else if (percentage >= 70) {
+          progressEl.className = 'bg-amber-500 h-2 rounded-full transition-all';
+        }
+      }
+    }
+    
+    // 头像悬停显示/隐藏 tooltip
+    const profileContainer = $('.user-profile-container');
+    const tooltip = $('#quota-tooltip');
+    if (profileContainer && tooltip) {
+      profileContainer.addEventListener('mouseenter', () => {
+        tooltip.classList.remove('hidden');
+      });
+      profileContainer.addEventListener('mouseleave', () => {
+        tooltip.classList.add('hidden');
+      });
+      tooltip.addEventListener('mouseenter', () => {
+        tooltip.classList.remove('hidden');
+      });
+      tooltip.addEventListener('mouseleave', () => {
+        tooltip.classList.add('hidden');
+      });
+    }
+    
+    const tooltipLogout = $('#tooltip-logout');
+    if (tooltipLogout) tooltipLogout.addEventListener('click', logout);
+    
     const upgradeBtn = $('#btn-upgrade');
     if (upgradeBtn) upgradeBtn.addEventListener('click', () => { window.location.href = 'pricing.html'; });
   } else {
@@ -509,9 +571,36 @@ async function loadTasks() {
 }
 
 async function deleteTask(id) {
-  if (!confirm('Delete this task and its generated files?')) return;
-  await fetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE' });
-  loadTasks();
+  // 先获取任务信息，判断是否正在处理
+  let task;
+  try {
+    const res = await fetch(`${API_BASE}/api/tasks/${id}`);
+    if (res.ok) {
+      task = await res.json();
+    }
+  } catch (err) {
+    // 获取失败时继续删除流程
+  }
+  
+  // 如果任务正在处理，提示用户确认
+  if (task && task.status === 'processing') {
+    const currentPage = task.current_page || 0;
+    const totalPages = task.total_pages || 0;
+    const progress = totalPages > 0 ? `${currentPage}/${totalPages}` : 'in progress';
+    if (!confirm(`This task is currently being processed (${progress}). Are you sure you want to cancel and delete it?`)) {
+      return;
+    }
+  } else {
+    if (!confirm('Delete this task and its generated files?')) return;
+  }
+  
+  try {
+    const res = await fetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    await loadTasks();
+  } catch (err) {
+    alert('Failed to delete task: ' + err.message);
+  }
 }
 
 async function retryTask(id) {
