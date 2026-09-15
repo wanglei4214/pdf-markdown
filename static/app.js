@@ -42,7 +42,7 @@ function renderAuthArea() {
       </div>`;
     $('#btn-logout').addEventListener('click', logout);
     const upgradeBtn = $('#btn-upgrade');
-    if (upgradeBtn) upgradeBtn.addEventListener('click', startCheckout);
+    if (upgradeBtn) upgradeBtn.addEventListener('click', () => { window.location.href = 'pricing.html'; });
   } else {
     area.innerHTML = `
       <button id="manual-signin-btn" type="button" class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 shadow-sm">
@@ -132,6 +132,8 @@ async function initAuth() {
   renderAuthArea();
   loadTasks();
   showPaymentSuccess();
+  claimPendingCheckout();
+  handlePendingIntent();
 
   if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
     setTimeout(() => { loadPaymentConfig().then(renderAuthArea); }, 3000);
@@ -161,31 +163,65 @@ async function loadPaymentConfig() {
   }
 }
 
-async function startCheckout() {
-  if (!requireLogin()) return;
-  try {
-    const res = await fetch(`${API_BASE}/api/payments/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Failed to start checkout');
-    // 跳转到 Creem 托管的结账页，支付完成后跳回 success_url
-    window.location.href = data.checkout_url;
-  } catch (err) {
-    alert('Checkout failed: ' + err.message);
-  }
-}
-
 function showPaymentSuccess() {
-  // 从 Creem 支付页跳回时 URL 带 ?checkout=success
+  // 从 Creem 支付页跳回时 URL 带 ?checkout=success&checkout_id=...
+  // checkout_id 留给 claimPendingCheckout 认领（匿名支付场景）
   const params = new URLSearchParams(window.location.search);
   if (params.get('checkout') === 'success') {
+    const checkoutId = params.get('checkout_id');
+    if (checkoutId) localStorage.setItem('pending_checkout_id', checkoutId);
     window.history.replaceState({}, document.title, window.location.pathname);
     const status = $('#upload-status');
     status.classList.remove('hidden');
     status.innerHTML = '<p class="text-green-600">Payment received! Your Pro access is being activated…</p>';
+  }
+}
+
+// 匿名先付款、后登录的用户：登录后凭 checkout_id 向后端认领权益（兼容旧流程）
+async function claimPendingCheckout() {
+  const checkoutId = localStorage.getItem('pending_checkout_id');
+  if (!checkoutId || !currentUser) return;
+  localStorage.removeItem('pending_checkout_id');
+  try {
+    const res = await fetch(`${API_BASE}/api/billing/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checkout_id: checkoutId }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || data.detail || 'claim failed');
+    const status = $('#upload-status');
+    status.classList.remove('hidden');
+    status.innerHTML = '<p class="text-green-600">Pro activated — 2,000 pages/month. Enjoy!</p>';
+    await loadPaymentConfig();
+    renderAuthArea();
+  } catch (err) {
+    console.warn('checkout claim failed', err);
+  }
+}
+
+// 登录后检测 sessionStorage 中的 pending_intent，自动续跳到支付页
+async function handlePendingIntent() {
+  const intent = sessionStorage.getItem('pending_intent');
+  if (!intent || !currentUser) return;
+  
+  if (intent === 'checkout') {
+    sessionStorage.removeItem('pending_intent');
+    try {
+      const res = await fetch(`${API_BASE}/api/billing/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        throw new Error(data.detail || 'Failed to create checkout');
+      }
+    } catch (err) {
+      console.error('Auto-checkout after login failed:', err);
+      alert('Unable to continue to checkout: ' + err.message);
+    }
   }
 }
 
@@ -253,7 +289,7 @@ async function uploadFile(file) {
             <p class="text-red-600 mt-1">This PDF has ${d.pages} page${d.pages === 1 ? '' : 's'}, but your Free plan has ${left} of ${d.limit} pages left.</p>
             <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month</button>
           </div>`;
-        $('#btn-quota-upgrade').addEventListener('click', startCheckout);
+        $('#btn-quota-upgrade').addEventListener('click', () => { window.location.href = 'pricing.html'; });
         loadPaymentConfig().then(renderAuthArea);
         return;
       }

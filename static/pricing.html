@@ -7,6 +7,15 @@
   <meta name="description" content="PDF to Markdown is free for 200 pages per month. Pro is $1/month for 2,000 pages. Secure checkout via Creem with credit/debit card, Apple Pay, or Google Pay.">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .pay-now-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: #111827; color: #fff; border: none; padding: 13px 20px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s ease; margin-top: 28px; }
+    .pay-now-btn:hover:not(:disabled) { background: #000; }
+    .pay-now-btn:disabled { opacity: .7; cursor: wait; }
+    .pay-methods-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 16px; margin-top: 14px; color: #6b7280; font-size: 12px; }
+    .pay-method { display: inline-flex; align-items: center; gap: 6px; }
+    .pay-mark { width: 16px; height: 16px; }
+    .pay-mark--apple { width: 14px; height: 14px; color: #111827; }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
   <div class="max-w-5xl mx-auto px-4 py-8 md:py-12">
@@ -52,8 +61,41 @@
           <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Helps cover OCR server and infrastructure cost</li>
           <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Supports ongoing improvements and new features</li>
         </ul>
-        <a href="/" class="mt-7 text-center px-4 py-2.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 font-medium">Sign in &amp; upgrade</a>
-        <p class="text-xs text-gray-400 mt-3 text-center">The Upgrade button appears in the app after you sign in. Payments are processed securely by Creem.</p>
+        <button id="pay-now-btn" type="button" class="pay-now-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>
+          <span id="pay-now-label">Pay now</span>
+        </button>
+        <div class="pay-methods-row" aria-label="Accepted payment methods">
+          <span class="pay-method">
+            <svg class="pay-mark" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+              <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C41.38 35.18 44 30 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+            </svg>
+            Google Pay
+          </span>
+          <span class="pay-method">
+            <svg class="pay-mark pay-mark--apple" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true">
+              <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+            </svg>
+            Apple Pay
+          </span>
+          <span class="pay-method">
+            <svg class="pay-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+            Card
+          </span>
+          <span class="pay-method">
+            <svg class="pay-mark" viewBox="0 0 24 24" aria-hidden="true">
+              <rect width="24" height="24" rx="5" fill="#1677FF"/>
+              <text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="#fff">支</text>
+            </svg>
+            Alipay
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 mt-3 text-center">Secure checkout via Creem · Cancel anytime</p>
       </div>
     </div>
 
@@ -86,5 +128,48 @@
       </nav>
     </div>
   </footer>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const payNowBtn = document.getElementById('pay-now-btn');
+    const payNowLabel = document.getElementById('pay-now-label');
+
+    if (payNowBtn) payNowBtn.addEventListener('click', handlePayNow);
+
+    async function handlePayNow() {
+      payNowBtn.disabled = true;
+      payNowLabel.textContent = 'Checking login…';
+
+      try {
+        // 探测登录态
+        const meRes = await fetch(`${API_BASE}/api/auth/me`);
+        const meData = await meRes.json();
+
+        if (meData && meData.user) {
+          // 已登录 → 直接创建 checkout 并跳转
+          payNowLabel.textContent = 'Preparing checkout…';
+          const checkoutRes = await fetch(`${API_BASE}/api/billing/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const checkoutData = await checkoutRes.json();
+          if (!checkoutRes.ok || !checkoutData.checkout_url) {
+            throw new Error(checkoutData.detail || 'Failed to create checkout');
+          }
+          window.location.href = checkoutData.checkout_url;
+        } else {
+          // 未登录 → 存意图到 sessionStorage，跳 Google 登录
+          sessionStorage.setItem('pending_intent', 'checkout');
+          payNowLabel.textContent = 'Redirecting to login…';
+          window.location.href = `${API_BASE}/api/auth/google/login`;
+        }
+      } catch (err) {
+        console.error('Pay now failed:', err);
+        alert('Unable to start checkout: ' + err.message);
+        payNowLabel.textContent = 'Pay now';
+        payNowBtn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>

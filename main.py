@@ -268,9 +268,12 @@ async def payments_config(user: dict = Depends(get_current_user)):
     }
 
 
-@app.post('/api/payments/checkout')
+@app.post('/api/billing/checkout')
 async def create_checkout(request: Request, user: dict = Depends(get_current_user)):
-    """创建 Creem 结账会话，返回结账页 URL，前端跳转过去完成付款。"""
+    """创建 Creem 结账会话，返回结账页 URL，前端跳转过去完成付款。
+    
+    注意：原接口路径 /api/payments/checkout 已废弃，请统一使用 /api/billing/checkout。
+    """
     if not CREEM_API_KEY or not CREEM_PRODUCT_ID:
         raise HTTPException(status_code=503, detail='Payment is not configured on the server')
 
@@ -316,9 +319,66 @@ async def create_checkout(request: Request, user: dict = Depends(get_current_use
     return {'checkout_url': checkout_url, 'request_id': request_id}
 
 
+@app.post('/api/payments/checkout')
+async def create_checkout_legacy(request: Request, user: dict = Depends(get_current_user)):
+    """旧接口兼容：重定向到新接口"""
+    return await create_checkout(request, user)
+
+
 @app.get('/api/payments/orders')
 async def list_payment_orders(user: dict = Depends(get_current_user)):
     return models.list_orders(user['id'])
+
+
+@app.post('/api/billing/claim')
+async def claim_checkout(request: Request, user: dict = Depends(get_current_user)):
+    """匿名直付成功后的认领：校验 Creem checkout，补建本地订单并开通权益。"""
+    if not CREEM_API_KEY:
+        raise HTTPException(status_code=503, detail='Payment is not configured on the server')
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    checkout_id = ((body or {}).get('checkout_id') or '').strip()
+    if not checkout_id:
+        raise HTTPException(status_code=400, detail='checkout_id required')
+    try:
+        resp = requests.get(f'{CREEM_API_BASE}/checkouts/{checkout_id}',
+                            headers={'x-api-key': CREEM_API_KEY}, timeout=15)
+    except requests.RequestException:
+        logger.exception('查询 Creem checkout 失败')
+        raise HTTPException(status_code=502, detail='Payment service is unavailable')
+    if resp.status_code != 200:
+        logger.error('查询 Creem checkout 失败：%s %s', resp.status_code, resp.text[:500])
+        raise HTTPException(status_code=502, detail='Failed to verify checkout')
+    data = resp.json()
+    ck = data.get('checkout') if isinstance(data.get('checkout'), dict) else data
+    if ck.get('status') != 'processed':
+        return {'ok': False, 'error': f"checkout status is {ck.get('status')}"}
+    product = ck.get('product') or {}
+    if CREEM_PRODUCT_ID and product.get('id') and product['id'] != CREEM_PRODUCT_ID:
+        return {'ok': False, 'error': 'product mismatch'}
+
+    request_id = f'claim_{checkout_id}'
+    if not models.get_order_by_request(request_id):
+        models.create_order(user['id'], request_id, product.get('id') or CREEM_PRODUCT_ID, '')
+    order_info = ck.get('order') or {}
+    models.mark_order_paid(
+        request_id=request_id,
+        creem_order_id=order_info.get('id') or checkout_id,
+        product_name=product.get('name'),
+        amount=ck.get('amount') or order_info.get('amount'),
+        currency=ck.get('currency') or order_info.get('currency'),
+    )
+    # 记录 Creem 客户号，便于续费/退款事件匹配到用户
+    customer_id = ck.get('customer_id') or (ck.get('customer') or {}).get('id')
+    if customer_id:
+        conn = models._connect()
+        conn.execute('UPDATE users SET customer_id = ? WHERE id = ?', (customer_id, user['id']))
+        conn.commit()
+        conn.close()
+    logger.info('checkout 认领成功：%s → 用户 %s', checkout_id, user['id'])
+    return {'ok': True}
 
 
 @app.post('/api/creem/webhook')
@@ -401,6 +461,11 @@ async def creem_webhook(request: Request):
             metadata = obj.get('metadata') or {}
             if metadata.get('user_id'):
                 models.revoke_all_orders(metadata['user_id'])
+            customer = obj.get('customer') or {}
+            if customer.get('id'):
+                u = models.get_user_by_customer(customer['id'])
+                if u:
+                    models.revoke_all_orders(u['id'])
             logger.info('已撤销权益：事件=%s', event_type)
         # 其余事件（如 subscription.past_due）当前无需处理
     except Exception:

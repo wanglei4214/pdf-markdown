@@ -160,6 +160,14 @@ def create_order(user_id: str, request_id: str, product_id: str,
     return order
 
 
+def get_user_by_customer(customer_id: str) -> dict | None:
+    conn = _connect()
+    conn.row_factory = sqlite3.Row
+    row = conn.execute('SELECT * FROM users WHERE customer_id = ?', (customer_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def get_order_by_request(request_id: str) -> dict | None:
     conn = _connect()
     conn.row_factory = sqlite3.Row
