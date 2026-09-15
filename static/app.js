@@ -487,6 +487,10 @@ async function loadTasks() {
     // 显示队列状态提示（如果有排队任务）
     let queueNotice = '';
     if (queueInfo && (queueInfo.user_queued > 0 || queueInfo.processing_count > 0)) {
+      // 统计数据库中 pending 状态的任务数量
+      const pendingCount = tasks.filter(t => t.status === 'pending').length;
+      const displayQueued = Math.max(queueInfo.user_queued, pendingCount);
+      
       const waitMsg = queueInfo.estimated_wait_minutes > 0 
         ? `· Estimated wait: ~${queueInfo.estimated_wait_minutes} min`
         : '';
@@ -500,7 +504,7 @@ async function loadTasks() {
               <p class="font-medium">Processing Queue Status</p>
               <p class="text-blue-600 mt-1">
                 ${queueInfo.processing_count} task${queueInfo.processing_count === 1 ? '' : 's'} in progress 
-                · ${queueInfo.user_queued} of your task${queueInfo.user_queued === 1 ? '' : 's'} queued
+                · ${displayQueued} of your task${displayQueued === 1 ? '' : 's'} queued
                 ${waitMsg}
               </p>
               <p class="text-blue-500 text-xs mt-1">Fair scheduling: All users get equal processing opportunities</p>

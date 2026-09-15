@@ -303,12 +303,21 @@ def try_consume_pages(user_id: str, n: int) -> dict | None:
 def refund_pages(user_id: str, n: int) -> None:
     """任务失败时返还预扣页数。仅当仍处同一计费月时返还，避免冲减新周期配额。"""
     conn = _connect()
-    conn.execute(
+    current_month = _current_month()
+    cursor = conn.execute(
         'UPDATE users SET used_pages = MAX(0, used_pages - ?) '
         'WHERE id = ? AND quota_month = ?',
-        (n, user_id, _current_month()))
+        (n, user_id, current_month))
+    affected_rows = cursor.rowcount
     conn.commit()
     conn.close()
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    if affected_rows > 0:
+        logger.info(f'已为用户 {user_id} 返还 {n} 页配额（当前月份：{current_month}）')
+    else:
+        logger.warning(f'用户 {user_id} 配额返还失败：可能不在同一计费月或用户不存在（尝试返还 {n} 页，当前月份：{current_month}）')
 
 
 def _now():

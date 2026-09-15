@@ -784,7 +784,11 @@ async def delete_task(task_id: str, user: dict = Depends(get_current_user)):
         pages_to_refund = refund_pages_count if refund_pages_count > 0 else total_pages
         if pages_to_refund > 0:
             models.refund_pages(user_id, pages_to_refund)
-            logger.info('任务 %s 未完成，返还 %d 页配额', task_id, pages_to_refund)
+            logger.info('任务 %s 未完成，返还 %d 页配额（status=%s, refund_pages_count=%d, total_pages=%d）', 
+                       task_id, pages_to_refund, task_status, refund_pages_count, total_pages)
+        else:
+            logger.warning('任务 %s 未完成但无需返还：pages_to_refund=0（refund_pages_count=%d, total_pages=%d）',
+                          task_id, refund_pages_count, total_pages)
     
     # 删除文件
     upload_path = UPLOAD_DIR / f'{task_id}.pdf'
