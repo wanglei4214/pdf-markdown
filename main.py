@@ -534,6 +534,17 @@ async def upload(file: UploadFile = File(...),
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail='Only PDF files are supported')
 
+    # 【第一阶段】上传前粗略检查：用户至少有 1 页额度
+    quota = models.quota_status(user['id'])
+    remaining = quota['limit'] - quota['used_pages']
+    if remaining <= 0:
+        logger.info('用户 %s 配额已用尽，拒绝上传：%d/%d', user['id'], quota['used_pages'], quota['limit'])
+        raise HTTPException(status_code=403, detail={
+            'error': 'quota_exhausted',
+            'message': 'Your quota has been exhausted. Please purchase a plan to continue.',
+            **quota,
+        })
+
     task = models.create_task(user['id'], file.filename, 0)
     upload_path = UPLOAD_DIR / f"{task['id']}.pdf"
 
@@ -549,7 +560,7 @@ async def upload(file: UploadFile = File(...),
     file_size = upload_path.stat().st_size
     models.update_task_status(task['id'], filename=str(upload_path), file_size=file_size)
 
-    # 上传时快速数页并预扣配额；任务处理失败会返还。
+    # 【第二阶段】上传后精确检查：读取实际页数并扣费
     # 数页失败的文件按 1 页放行（损坏文件会在 OCR 阶段失败并返还配额）。
     try:
         page_count = len(PdfReader(str(upload_path)).pages)
@@ -559,14 +570,18 @@ async def upload(file: UploadFile = File(...),
 
     consume = models.try_consume_pages(user['id'], page_count)
     if consume is None:
+        # 精确检查后发现配额不足，回滚文件和任务
         quota = models.quota_status(user['id'])
+        remaining = max(0, quota['limit'] - quota['used_pages'])
         upload_path.unlink(missing_ok=True)
         models.delete_task(task['id'])
         logger.info('用户 %s 配额不足：需 %d 页，剩余 %d/%d', user['id'], page_count,
-                    max(0, quota['limit'] - quota['used_pages']), quota['limit'])
+                    remaining, quota['limit'])
         raise HTTPException(status_code=403, detail={
             'error': 'quota_exceeded',
-            'pages': page_count,
+            'message': f'This PDF has {page_count} pages, but you only have {remaining} pages remaining. Please purchase a plan.',
+            'pages_required': page_count,
+            'pages_remaining': remaining,
             **quota,
         })
 
@@ -661,24 +676,24 @@ async def queue_status(user: dict = Depends(get_current_user)):
         total_queued = sum(len(q) for q in _user_task_queues.values())
         # 统计当前用户队列中的任务数
         user_queued = len(_user_task_queues.get(user['id'], []))
-        # 统计正在处理的任务数（已获得槽位）
-        processing_count = len(_active_threads)
-        
-        # 计算当前用户在全局队列中的位置（时间片轮转算法）
-        # 按用户轮转，所以位置 = 当前用户前面有多少个用户有任务
-        users_ahead = 0
-        found_user = False
+    
+    # 统计正在处理的任务数（查询数据库中 status='processing' 的任务）
+    processing_count = models.count_tasks_by_status('processing')
+    
+    # 计算当前用户在全局队列中的位置（时间片轮转算法）
+    # 按用户轮转，所以位置 = 当前用户前面有多少个用户有任务
+    users_ahead = 0
+    with _queue_lock:
         for uid in _user_task_queues.keys():
             if uid == user['id']:
-                found_user = True
                 break
             users_ahead += 1
-        
-        # 预估等待时间：假设每个任务平均处理时间 30 秒
-        # 时间片轮转下，用户获得处理机会的周期 = 用户数 * 平均处理时间 / 并发数
-        estimated_wait_minutes = 0
-        if user_queued > 0 and users_ahead > 0:
-            estimated_wait_minutes = (users_ahead * 0.5) + (user_queued * 0.5)
+    
+    # 预估等待时间：假设每个任务平均处理时间 30 秒
+    # 时间片轮转下，用户获得处理机会的周期 = 用户数 * 平均处理时间 / 并发数
+    estimated_wait_minutes = 0
+    if user_queued > 0 and users_ahead > 0:
+        estimated_wait_minutes = (users_ahead * 0.5) + (user_queued * 0.5)
     
     return {
         'user_queued': user_queued,

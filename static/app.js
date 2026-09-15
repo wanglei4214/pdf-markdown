@@ -265,6 +265,32 @@ function statusBadge(status) {
 
 async function uploadFile(file) {
   if (!requireLogin()) return;
+  
+  // 【前端预检查】上传前检查配额状态并提醒
+  const quota = paymentConfig.quota;
+  if (quota) {
+    const remaining = Math.max(0, quota.limit - quota.used_pages);
+    if (remaining === 0) {
+      const status = $('#upload-status');
+      status.classList.remove('hidden');
+      status.innerHTML = `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
+          <p class="text-red-700 font-medium">Your quota has been exhausted.</p>
+          <p class="text-red-600 mt-1">You have used all ${quota.limit} pages for this month. Quota resets on the 1st.</p>
+          <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
+        </div>`;
+      $('#btn-quota-upgrade').addEventListener('click', () => { window.location.href = 'pricing.html'; });
+      return;
+    }
+    
+    // 剩余额度较少时警告（< 10 页）
+    if (remaining < 10 && remaining > 0) {
+      if (!confirm(`You have only ${remaining} page${remaining === 1 ? '' : 's'} left this month. Continue uploading?`)) {
+        return;
+      }
+    }
+  }
+  
   const status = $('#upload-status');
   status.classList.remove('hidden');
   status.innerHTML = '<p class="text-blue-600">Uploading...</p>';
@@ -279,16 +305,26 @@ async function uploadFile(file) {
     });
     const data = await res.json();
     if (!res.ok) {
-      // 配额不足：展示剩余页数并引导升级
+      // 【后端验证失败】区分配额已用尽 vs 配额不足两种情况
       const d = data && data.detail;
-      if (res.status === 403 && d && typeof d === 'object' && d.error === 'quota_exceeded') {
-        const left = Math.max(0, d.limit - d.used_pages);
-        status.innerHTML = `
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
-            <p class="text-red-700 font-medium">Not enough quota for this month.</p>
-            <p class="text-red-600 mt-1">This PDF has ${d.pages} page${d.pages === 1 ? '' : 's'}, but your Free plan has ${left} of ${d.limit} pages left.</p>
-            <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month</button>
-          </div>`;
+      if (res.status === 403 && d && typeof d === 'object') {
+        if (d.error === 'quota_exhausted') {
+          // 上传前就已用尽（第一阶段拦截）
+          status.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
+              <p class="text-red-700 font-medium">Your quota has been exhausted.</p>
+              <p class="text-red-600 mt-1">You have used all ${d.limit} pages for this month. Quota resets on the 1st.</p>
+              <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
+            </div>`;
+        } else if (d.error === 'quota_exceeded') {
+          // 上传后发现页数超出剩余额度（第二阶段拦截）
+          status.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
+              <p class="text-red-700 font-medium">Not enough quota for this PDF.</p>
+              <p class="text-red-600 mt-1">This PDF has ${d.pages_required} page${d.pages_required === 1 ? '' : 's'}, but you only have ${d.pages_remaining} page${d.pages_remaining === 1 ? '' : 's'} left this month.</p>
+              <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
+            </div>`;
+        }
         $('#btn-quota-upgrade').addEventListener('click', () => { window.location.href = 'pricing.html'; });
         loadPaymentConfig().then(renderAuthArea);
         return;

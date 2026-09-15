@@ -379,6 +379,14 @@ def list_tasks(user_id: str | None = None, limit: int = 100, offset: int = 0) ->
     return [dict(row) for row in rows]
 
 
+def count_tasks_by_status(status: str) -> int:
+    """统计指定状态的任务数量。"""
+    conn = _connect()
+    count = conn.execute('SELECT COUNT(*) FROM tasks WHERE status = ?', (status,)).fetchone()[0]
+    conn.close()
+    return count
+
+
 def update_task_status(task_id: str, **kwargs):
     allowed = {'status', 'current_page', 'total_pages', 'output_path', 'error_message', 'filename', 'file_size'}
     fields = {k: v for k, v in kwargs.items() if k in allowed}
