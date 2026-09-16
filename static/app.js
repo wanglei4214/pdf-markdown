@@ -17,20 +17,12 @@ function renderAuthArea() {
     const avatar = currentUser.picture
       ? `<img src="${currentUser.picture}" alt="" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full border">`
       : '';
-    // 付费状态徽章 / 升级按钮（支付未配置时不显示）；免费用户额外显示本月剩余页数
+    // 付费状态徽章 / 升级按钮（支付未配置时不显示）
     let planHtml = '';
     if (paymentConfig.enabled) {
       if (paymentConfig.has_paid) {
         planHtml = `<span class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium whitespace-nowrap">Pro${paymentConfig.test_mode ? ' (test)' : ''}</span>`;
       } else {
-        const q = paymentConfig.quota;
-        if (q) {
-          const left = Math.max(0, q.limit - q.used_pages);
-          planHtml += `<span class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium whitespace-nowrap" title="Page quota, resets on the 1st of each month">${left}/${q.limit} pages left</span>`;
-          
-          // 在上传页面显示配额横幅
-          updateQuotaBanner(left, q.limit);
-        }
         planHtml += `<button id="btn-upgrade" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium whitespace-nowrap">Upgrade Pro</button>`;
       }
     }
@@ -226,31 +218,17 @@ function requireLogin() {
   return true;
 }
 
-function updateQuotaBanner(remaining, limit) {
-  const banner = $('#quota-banner');
-  const text = $('#quota-text');
-  const action = $('#quota-action');
-  
-  if (!banner || !text) return;
-  
-  banner.classList.remove('hidden');
-  text.textContent = `${remaining} / ${limit} pages remaining`;
-  
-  // 如果剩余页数少于 10 页，显示升级按钮
-  if (remaining < 10) {
-    action?.classList.remove('hidden');
-  } else {
-    action?.classList.add('hidden');
-  }
-  
-  // 配额不足时显示警告样式
-  if (remaining === 0) {
-    banner.className = 'mb-4 p-4 rounded-xl bg-red-50 border border-red-200';
-    text.className = 'text-2xl font-bold text-red-700 mt-1';
-  } else if (remaining < 10) {
-    banner.className = 'mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200';
-    text.className = 'text-2xl font-bold text-amber-700 mt-1';
-  }
+function showQuotaError(message) {
+  const status = $('#upload-status');
+  if (!status) return;
+  status.classList.remove('hidden');
+  status.innerHTML = `
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
+      ${message}
+      <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
+    </div>`;
+  const upgradeBtn = $('#btn-quota-upgrade');
+  if (upgradeBtn) upgradeBtn.addEventListener('click', () => { window.location.href = 'pricing.html'; });
 }
 
 // ---------- Creem 支付 ----------
@@ -371,28 +349,15 @@ function statusBadge(status) {
 async function uploadFile(file) {
   if (!requireLogin()) return;
   
-  // 【前端预检查】上传前检查配额状态并提醒
+  // 上传前仅拦截已用尽的额度。
   const quota = paymentConfig.quota;
   if (quota) {
     const remaining = Math.max(0, quota.limit - quota.used_pages);
     if (remaining === 0) {
-      const status = $('#upload-status');
-      status.classList.remove('hidden');
-      status.innerHTML = `
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
-          <p class="text-red-700 font-medium">Your quota has been exhausted.</p>
-          <p class="text-red-600 mt-1">You have used all ${quota.limit} pages for this month. Quota resets on the 1st.</p>
-          <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
-        </div>`;
-      $('#btn-quota-upgrade').addEventListener('click', () => { window.location.href = 'pricing.html'; });
+      showQuotaError(`
+        <p class="text-red-700 font-medium">Your quota has been exhausted.</p>
+        <p class="text-red-600 mt-1">You have used all ${quota.limit} pages for this month. Quota resets on the 1st.</p>`);
       return;
-    }
-    
-    // 剩余额度较少时警告（< 10 页）
-    if (remaining < 10 && remaining > 0) {
-      if (!confirm(`You have only ${remaining} page${remaining === 1 ? '' : 's'} left this month. Continue uploading?`)) {
-        return;
-      }
     }
   }
   
@@ -414,23 +379,14 @@ async function uploadFile(file) {
       const d = data && data.detail;
       if (res.status === 403 && d && typeof d === 'object') {
         if (d.error === 'quota_exhausted') {
-          // 上传前就已用尽（第一阶段拦截）
-          status.innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
-              <p class="text-red-700 font-medium">Your quota has been exhausted.</p>
-              <p class="text-red-600 mt-1">You have used all ${d.limit} pages for this month. Quota resets on the 1st.</p>
-              <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
-            </div>`;
+          showQuotaError(`
+            <p class="text-red-700 font-medium">Your quota has been exhausted.</p>
+            <p class="text-red-600 mt-1">You have used all ${d.limit} pages for this month. Quota resets on the 1st.</p>`);
         } else if (d.error === 'quota_exceeded') {
-          // 上传后发现页数超出剩余额度（第二阶段拦截）
-          status.innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
-              <p class="text-red-700 font-medium">Not enough quota for this PDF.</p>
-              <p class="text-red-600 mt-1">This PDF has ${d.pages_required} page${d.pages_required === 1 ? '' : 's'}, but you only have ${d.pages_remaining} page${d.pages_remaining === 1 ? '' : 's'} left this month.</p>
-              <button id="btn-quota-upgrade" class="mt-3 px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Upgrade to Pro — $1/month for 2,000 pages</button>
-            </div>`;
+          showQuotaError(`
+            <p class="text-red-700 font-medium">Not enough quota for this PDF.</p>
+            <p class="text-red-600 mt-1">This PDF has ${d.pages_required} page${d.pages_required === 1 ? '' : 's'}, but you only have ${d.pages_remaining} page${d.pages_remaining === 1 ? '' : 's'} left this month.</p>`);
         }
-        $('#btn-quota-upgrade').addEventListener('click', () => { window.location.href = 'pricing.html'; });
         loadPaymentConfig().then(renderAuthArea);
         return;
       }
