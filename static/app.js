@@ -23,7 +23,7 @@ function renderAuthArea() {
       if (paymentConfig.has_paid) {
         planHtml = `<span class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium whitespace-nowrap">Pro${paymentConfig.test_mode ? ' (test)' : ''}</span>`;
       } else {
-        planHtml += `<button id="btn-upgrade" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium whitespace-nowrap">Upgrade Pro</button>`;
+        planHtml += `<button id="btn-upgrade" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium whitespace-nowrap">Upgrade to Pro</button>`;
       }
     }
     area.innerHTML = `
