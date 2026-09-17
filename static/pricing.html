@@ -12,15 +12,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pricing | PDF to Markdown</title>
-  <meta name="description" content="PDF to Markdown is free for 200 pages per month. Pro is $1/month for 2,000 pages. Secure checkout via Creem with credit/debit card, Apple Pay, or Google Pay.">
+  <meta name="description" content="PDF to Markdown pricing: Free 200 pages/month, Starter $1/month for 800 pages, Pro $2/month for 2,000 pages. Secure checkout via Creem.">
   <link rel="canonical" href="https://pdf.my99ai.com/pricing.html">
   <meta property="og:title" content="Pricing – PDF to Markdown Converter">
-  <meta property="og:description" content="Free plan: 200 pages/month. Pro plan: $1/month for 2,000 pages. Start converting PDFs to Markdown today.">
+  <meta property="og:description" content="Free: 200 pages/month. Starter: $1/month for 800 pages. Pro: $2/month for 2,000 pages. Start converting PDFs to Markdown today.">
   <meta property="og:url" content="https://pdf.my99ai.com/pricing.html">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Pricing – PDF to Markdown Converter">
-  <meta name="twitter:description" content="Free plan: 200 pages/month. Pro plan: $1/month for 2,000 pages. Start converting PDFs to Markdown today.">
+  <meta name="twitter:description" content="Free: 200 pages/month. Starter: $1/month for 800 pages. Pro: $2/month for 2,000 pages. Start converting PDFs to Markdown today.">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css">
   <style>
@@ -57,37 +57,84 @@
       </ol>
     </nav>
 
-    <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+    <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
       <!-- Free -->
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 flex flex-col">
         <h3 class="text-lg font-semibold text-gray-900">Free</h3>
         <p class="mt-2 text-4xl font-bold text-gray-900">$0</p>
-        <p class="text-sm text-gray-400 mt-1">200 pages per month, no credit card required</p>
+        <p class="text-sm text-gray-400 mt-1">200 pages per month</p>
         <ul class="mt-6 space-y-3 text-sm text-gray-600 flex-1">
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Try PDF to Markdown with real files before choosing a plan</li>
           <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Monthly usage resets on the 1st</li>
-          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Convert scanned and text-based PDFs to Markdown</li>
           <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> OCR for scanned documents</li>
           <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Tables and table of contents preserved</li>
-          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Preview, copy, and download the result as .md</li>
-          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Task history tied to your account</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Download as .md</li>
         </ul>
-        <a href="/" class="mt-7 text-center px-4 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium">Start for free</a>
+        <a href="/" class="mt-7 text-center px-4 py-2.5 rounded-lg bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium">Start free</a>
+      </div>
+
+      <!-- Starter -->
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 flex flex-col">
+        <h3 class="text-lg font-semibold text-gray-900">Starter</h3>
+        <p class="mt-2 text-4xl font-bold text-gray-900">$1<span class="text-lg font-medium text-gray-400"> / month</span></p>
+        <p class="text-sm text-gray-400 mt-1">800 pages per month</p>
+        <ul class="mt-6 space-y-3 text-sm text-gray-600 flex-1">
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> A light monthly plan for occasional use</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> 800 page conversions each month</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Good for personal documents and small projects</li>
+        </ul>
+        <button type="button" class="pay-now-btn mt-7" data-plan="starter">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>
+          <span>Pay now</span>
+        </button>
+        <div class="pay-methods-row" aria-label="Accepted payment methods">
+          <span class="pay-method">
+            <svg class="pay-mark" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+              <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C41.38 35.18 44 30 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+            </svg>
+            Google Pay
+          </span>
+          <span class="pay-method">
+            <svg class="pay-mark pay-mark--apple" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true">
+              <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+            </svg>
+            Apple Pay
+          </span>
+          <span class="pay-method">
+            <svg class="pay-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+            Card
+          </span>
+          <span class="pay-method">
+            <svg class="pay-mark" viewBox="0 0 24 24" aria-hidden="true">
+              <rect width="24" height="24" rx="5" fill="#1677FF"/>
+              <text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="#fff">支</text>
+            </svg>
+            Alipay
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 mt-3 text-center">Secure checkout via Creem</p>
       </div>
 
       <!-- Pro -->
       <div class="bg-white rounded-2xl border-2 border-indigo-500 shadow-lg p-7 flex flex-col relative">
-        <span class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-semibold">Supports the project</span>
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-semibold">POPULAR</span>
         <h3 class="text-lg font-semibold text-gray-900">Pro</h3>
-        <p class="mt-2 text-4xl font-bold text-gray-900">$1<span class="text-lg font-medium text-gray-400"> / month</span></p>
+        <p class="mt-2 text-4xl font-bold text-gray-900">$2<span class="text-lg font-medium text-gray-400"> / month</span></p>
         <p class="text-sm text-gray-400 mt-1">2,000 pages per month</p>
         <ul class="mt-6 space-y-3 text-sm text-gray-600 flex-1">
-          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Everything in Free</li>
-          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> 2,000 pages / month (10× Free)</li>
-          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Helps cover OCR server and infrastructure cost</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> For creators, small teams, and frequent users</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> 2,000 page conversions each month</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Best for content workflows and regular processing</li>
+          <li class="flex gap-2"><span class="text-indigo-600 font-bold">✓</span> Lowest per-page price</li>
         </ul>
-        <button id="pay-now-btn" type="button" class="pay-now-btn">
+        <button type="button" class="pay-now-btn" data-plan="pro">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>
-          <span id="pay-now-label">Pay now</span>
+          <span>Pay now</span>
         </button>
         <div class="pay-methods-row" aria-label="Accepted payment methods">
           <span class="pay-method">
@@ -144,20 +191,24 @@
 
   <script>
     const API_BASE = window.location.origin;
-    const payNowBtn = document.getElementById('pay-now-btn');
-    const payNowLabel = document.getElementById('pay-now-label');
+    const payNowBtns = document.querySelectorAll('.pay-now-btn');
 
-    // 页面加载时重置按钮状态（防止浏览器后退缓存残留）
-    if (payNowBtn) {
-      payNowBtn.disabled = false;
-      payNowLabel.textContent = 'Pay now';
-    }
+    // 页面加载时重置所有按钮状态（防止浏览器后退缓存残留）
+    payNowBtns.forEach(btn => {
+      btn.disabled = false;
+      const label = btn.querySelector('span');
+      if (label) label.textContent = 'Pay now';
+    });
 
-    if (payNowBtn) payNowBtn.addEventListener('click', handlePayNow);
+    payNowBtns.forEach(btn => btn.addEventListener('click', handlePayNow));
 
-    async function handlePayNow() {
-      payNowBtn.disabled = true;
-      payNowLabel.textContent = 'Checking login…';
+    async function handlePayNow(e) {
+      const btn = e.currentTarget;
+      const label = btn.querySelector('span');
+      const plan = btn.dataset.plan; // 'starter' or 'pro'
+      
+      btn.disabled = true;
+      label.textContent = 'Checking login…';
 
       try {
         // 探测登录态
@@ -166,10 +217,11 @@
 
         if (meData && meData.user) {
           // 已登录 → 直接创建 checkout 并跳转
-          payNowLabel.textContent = 'Preparing checkout…';
+          label.textContent = 'Preparing checkout…';
           const checkoutRes = await fetch(`${API_BASE}/api/billing/checkout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan: plan })
           });
           const checkoutData = await checkoutRes.json();
           if (!checkoutRes.ok || !checkoutData.checkout_url) {
@@ -179,7 +231,8 @@
         } else {
           // 未登录 → 存意图到 sessionStorage，跳 Google 登录
           sessionStorage.setItem('pending_intent', 'checkout');
-          payNowLabel.textContent = 'Redirecting to login…';
+          sessionStorage.setItem('pending_plan', plan);
+          label.textContent = 'Redirecting to login…';
           // 延迟 100ms 确保 sessionStorage 写入完成
           setTimeout(() => {
             window.location.href = `${API_BASE}/api/auth/google/login`;
@@ -188,8 +241,8 @@
       } catch (err) {
         console.error('Pay now failed:', err);
         alert('Unable to start checkout: ' + err.message);
-        payNowLabel.textContent = 'Pay now';
-        payNowBtn.disabled = false;
+        label.textContent = 'Pay now';
+        btn.disabled = false;
       }
     }
   </script>
