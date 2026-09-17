@@ -36,8 +36,9 @@ SESSION_SECRET_KEY = os.getenv('SESSION_SECRET_KEY', 'dev-secret-change-me')
 # Creem 支付配置：Dashboard → Developers 获取 API Key 与 Webhook Secret（whsec_ 开头）
 CREEM_API_KEY = os.getenv('CREEM_API_KEY', '')
 CREEM_WEBHOOK_SECRET = os.getenv('CREEM_WEBHOOK_SECRET', '')
-# 在售商品 ID（Creem Dashboard → Products → Copy ID，prod_ 开头）
-CREEM_PRODUCT_ID = os.getenv('CREEM_PRODUCT_ID', '')
+# 付费套餐商品 ID（Creem Dashboard → Products → Copy ID，prod_ 开头）
+CREEM_PRODUCT_ID_STARTER = os.getenv('CREEM_PRODUCT_ID_STARTER', '')
+CREEM_PRODUCT_ID_PRO = os.getenv('CREEM_PRODUCT_ID_PRO', '')
 # true 使用测试环境（test-api.creem.io），生产设为 false
 CREEM_TEST_MODE = os.getenv('CREEM_TEST_MODE', 'true').lower() == 'true'
 CREEM_API_BASE = 'https://test-api.creem.io/v1' if CREEM_TEST_MODE else 'https://api.creem.io/v1'
@@ -312,8 +313,9 @@ async def auth_logout(request: Request):
 @app.get('/api/payments/config')
 async def payments_config(user: dict = Depends(get_current_user)):
     """前端据此决定是否显示付费按钮，并展示页数配额。"""
+    has_products = bool(CREEM_PRODUCT_ID_STARTER or CREEM_PRODUCT_ID_PRO)
     return {
-        'enabled': bool(CREEM_API_KEY and CREEM_PRODUCT_ID),
+        'enabled': bool(CREEM_API_KEY and has_products),
         'test_mode': CREEM_TEST_MODE,
         'has_paid': models.has_paid_order(user['id']),
         'quota': models.quota_status(user['id']),
@@ -324,17 +326,28 @@ async def payments_config(user: dict = Depends(get_current_user)):
 async def create_checkout(request: Request, user: dict = Depends(get_current_user)):
     """创建 Creem 结账会话，返回结账页 URL，前端跳转过去完成付款。
     
-    注意：原接口路径 /api/payments/checkout 已废弃，请统一使用 /api/billing/checkout。
+    前端通过 plan 参数指定套餐：'starter' 或 'pro'。
     """
-    if not CREEM_API_KEY or not CREEM_PRODUCT_ID:
-        raise HTTPException(status_code=503, detail='Payment is not configured on the server')
+    if not CREEM_API_KEY:
+        raise HTTPException(status_code=503, detail='Payment API key is not configured on the server')
 
     body = {}
     try:
         body = await request.json()
     except Exception:
         pass
-    product_id = (body or {}).get('product_id') or CREEM_PRODUCT_ID
+    
+    # 根据前端传来的 plan 参数选择对应的产品ID
+    plan = (body or {}).get('plan', 'pro').lower()
+    if plan == 'starter':
+        product_id = CREEM_PRODUCT_ID_STARTER
+    elif plan == 'pro':
+        product_id = CREEM_PRODUCT_ID_PRO
+    else:
+        raise HTTPException(status_code=400, detail='Invalid plan. Use "starter" or "pro".')
+    
+    if not product_id:
+        raise HTTPException(status_code=503, detail=f'Product ID for plan "{plan}" is not configured on the server')
 
     # request_id 是我们本地订单的幂等键，会原样出现在 webhook 的 object.request_id 中
     request_id = f'order_{user["id"]}_{uuid.uuid4().hex[:16]}'
@@ -408,12 +421,16 @@ async def claim_checkout(request: Request, user: dict = Depends(get_current_user
     if ck.get('status') != 'processed':
         return {'ok': False, 'error': f"checkout status is {ck.get('status')}"}
     product = ck.get('product') or {}
-    if CREEM_PRODUCT_ID and product.get('id') and product['id'] != CREEM_PRODUCT_ID:
+    # 校验产品ID是否在配置的产品列表中
+    valid_product_ids = [pid for pid in [CREEM_PRODUCT_ID_STARTER, CREEM_PRODUCT_ID_PRO] if pid]
+    if valid_product_ids and product.get('id') and product['id'] not in valid_product_ids:
         return {'ok': False, 'error': 'product mismatch'}
 
     request_id = f'claim_{checkout_id}'
     if not models.get_order_by_request(request_id):
-        models.create_order(user['id'], request_id, product.get('id') or CREEM_PRODUCT_ID, '')
+        # 如果产品ID未知，尝试使用配置中的任一产品ID（优先 Pro）
+        fallback_product_id = CREEM_PRODUCT_ID_PRO or CREEM_PRODUCT_ID_STARTER or ''
+        models.create_order(user['id'], request_id, product.get('id') or fallback_product_id, '')
     order_info = ck.get('order') or {}
     models.mark_order_paid(
         request_id=request_id,
