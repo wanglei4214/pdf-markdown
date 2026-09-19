@@ -237,3 +237,8 @@ node_modules/
 
 # SEO 部署私钥（只放本地与 GitHub Secrets，绝不入库）
 seo/deploy_key*
+
+# GSC OAuth 本地凭据（不入库）
+seo/oauth_client.json
+.gsc_refresh_token
+.gsc_code

@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """Google Search Console 周报：拉取最近 7 天的自然搜索查询表现。
 
-环境变量 GSC_SERVICE_ACCOUNT_JSON：服务账号 JSON 密钥全文（配置步骤见 seo/SECRETS-SETUP.md）。
-未配置时优雅跳过。报告写入 GITHUB_STEP_SUMMARY（本地运行时打印）和 seo/reports/。
+认证二选一（未配置时优雅跳过）：
+  1) OAuth 刷新令牌（推荐）：GSC_OAUTH_CLIENT_ID / GSC_OAUTH_CLIENT_SECRET /
+     GSC_OAUTH_REFRESH_TOKEN
+  2) 服务账号 JSON：GSC_SERVICE_ACCOUNT_JSON（需组织允许创建 SA 密钥）
+报告写入 GITHUB_STEP_SUMMARY（本地运行时打印）和 seo/reports/。
 
 用法：python3 tools/seo_report.py
 """
@@ -22,7 +25,18 @@ TOKEN_URL = 'https://oauth2.googleapis.com/token'
 SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
 
 
-def get_token(sa_info):
+def get_token_oauth():
+    resp = requests.post(TOKEN_URL, data={
+        'client_id': os.environ['GSC_OAUTH_CLIENT_ID'],
+        'client_secret': os.environ['GSC_OAUTH_CLIENT_SECRET'],
+        'refresh_token': os.environ['GSC_OAUTH_REFRESH_TOKEN'],
+        'grant_type': 'refresh_token',
+    }, timeout=30)
+    resp.raise_for_status()
+    return resp.json()['access_token']
+
+
+def get_token_sa(sa_info):
     now = int(time.time())
     import jwt
     assertion = jwt.encode({
@@ -55,20 +69,23 @@ def fetch_site_stats(token, site, start, end):
 
 
 def main():
-    sa_raw = os.getenv('GSC_SERVICE_ACCOUNT_JSON', '')
-    if not sa_raw:
-        print('未配置 GSC_SERVICE_ACCOUNT_JSON，跳过 SEO 周报。配置方法见 seo/SECRETS-SETUP.md')
+    token = None
+    if os.getenv('GSC_OAUTH_REFRESH_TOKEN'):
+        token = get_token_oauth()
+    elif os.getenv('GSC_SERVICE_ACCOUNT_JSON'):
+        sa_raw = os.environ['GSC_SERVICE_ACCOUNT_JSON']
+        try:
+            sa_info = json.loads(sa_raw)
+        except json.JSONDecodeError:
+            import base64
+            sa_info = json.loads(base64.b64decode(sa_raw))
+        token = get_token_sa(sa_info)
+    else:
+        print('未配置 GSC OAuth 刷新令牌或服务账号，跳过 SEO 周报。配置方法见 seo/SECRETS-SETUP.md')
         return 0
-    try:
-        sa_info = json.loads(sa_raw)
-    except json.JSONDecodeError:
-        # 兼容 base64 形式
-        import base64
-        sa_info = json.loads(base64.b64decode(sa_raw))
 
     end = date.today() - timedelta(days=1)
     start = end - timedelta(days=6)
-    token = get_token(sa_info)
 
     rows = None
     used_site = None

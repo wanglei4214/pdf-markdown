@@ -1,0 +1,28 @@
+name: GSC exchange
+
+# 一次性工作流：用本地捕获的授权码换取刷新令牌并写入仓库 Secret。
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: 'OAuth authorization code'
+        required: true
+
+permissions:
+  administration: write
+  contents: read
+
+jobs:
+  exchange:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exchange code and store refresh token
+        env:
+          AUTH_CODE: ${{ inputs.code }}
+          GSC_OAUTH_CLIENT_ID: ${{ secrets.GSC_OAUTH_CLIENT_ID }}
+          GSC_OAUTH_CLIENT_SECRET: ${{ secrets.GSC_OAUTH_CLIENT_SECRET }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          pip install --quiet pynacl requests
+          python tools/exchange_code.py
