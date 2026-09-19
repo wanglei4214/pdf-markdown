@@ -196,8 +196,8 @@ Respond with ONLY this JSON object (no markdown fences):
 
 
 def call_llm(keyword, angle):
-    api_base = os.getenv('LLM_API_BASE', 'https://api.openai.com/v1').rstrip('/')
-    model = os.getenv('LLM_MODEL', 'gpt-4o-mini')
+    api_base = (os.getenv('LLM_API_BASE') or 'https://api.openai.com/v1').rstrip('/')
+    model = (os.getenv('LLM_MODEL') or 'gpt-4o-mini')
     resp = requests.post(
         f'{api_base}/chat/completions',
         headers={'Authorization': f"Bearer {os.environ['LLM_API_KEY']}"},
