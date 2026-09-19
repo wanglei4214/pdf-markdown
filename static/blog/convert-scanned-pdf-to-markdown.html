@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YCN8ZMT5R0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YCN8ZMT5R0');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Convert a Scanned PDF to Markdown (OCR Workflow) | PDF to Markdown</title>
+  <meta name="description" content="Scanned PDFs are images, not text. Here's how OCR turns them into clean Markdown, plus fixes for skewed scans, handwriting, and multi-column layouts.">
+  <link rel="canonical" href="https://pdf.my99ai.com/blog/convert-scanned-pdf-to-markdown.html">
+  <meta property="og:title" content="How to Convert a Scanned PDF to Markdown (OCR Workflow)">
+  <meta property="og:description" content="Scanned PDFs are images, not text. Here's how OCR turns them into clean Markdown, plus fixes for skewed scans, handwriting, and multi-column layouts.">
+  <meta property="og:url" content="https://pdf.my99ai.com/blog/convert-scanned-pdf-to-markdown.html">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://pdf.my99ai.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How to Convert a Scanned PDF to Markdown (OCR Workflow)">
+  <meta name="twitter:description" content="Scanned PDFs are images, not text. Here's how OCR turns them into clean Markdown, plus fixes for skewed scans, handwriting, and multi-column layouts.">
+  <meta name="twitter:image" content="https://pdf.my99ai.com/og-image.png">
+  <meta name="article:published_time" content="2026-09-19">
+  <meta name="article:author" content="PDF to Markdown">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to Convert a Scanned PDF to Markdown (OCR Workflow)",
+    "description": "Scanned PDFs are images, not text. Here's how OCR turns them into clean Markdown, plus fixes for skewed scans, handwriting, and multi-column layouts.",
+    "image": "https://pdf.my99ai.com/og-image.png",
+    "datePublished": "2026-09-19",
+    "dateModified": "2026-09-19",
+    "author": {"@type": "Organization", "name": "PDF to Markdown", "url": "https://pdf.my99ai.com"},
+    "publisher": {"@type": "Organization", "name": "PDF to Markdown", "url": "https://pdf.my99ai.com"}
+  }
+  </script>
+  <link rel="stylesheet" href="../tailwind.css">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+  <div class="max-w-3xl mx-auto px-4 py-8 md:py-12 flex-1 w-full">
+    <header class="flex items-start justify-between gap-4 mb-8">
+      <a href="/" class="block">
+        <p class="eyebrow">DOCUMENT CONVERTER</p>
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">PDF &rarr; Markdown</h1>
+      </a>
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-sm whitespace-nowrap">Back to tool</a>
+    </header>
+
+    <nav class="mb-6 text-sm" aria-label="Breadcrumb">
+      <ol class="flex gap-2 text-gray-500">
+        <li><a href="/" class="hover:text-indigo-600">Home</a></li>
+        <li>/</li>
+        <li><a href="/blog/" class="hover:text-indigo-600">Blog</a></li>
+        <li>/</li>
+        <li class="text-gray-700" aria-current="page">How to Convert a Scanned PDF to Markdown (OCR Workflow)</li>
+      </ol>
+    </nav>
+
+    <article class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+      <div class="mb-6">
+        <span class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">Guide</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-3">How to Convert a Scanned PDF to Markdown (OCR Workflow)</h2>
+        <p class="text-gray-600">Scanned PDFs are images, not text. Here's how OCR turns them into clean Markdown, plus fixes for skewed scans, handwriting, and multi-column layouts.</p>
+        <p class="text-sm text-gray-400 mt-3">2026-09-19 &middot; 5 min read</p>
+      </div>
+
+      <div class="prose prose-indigo max-w-none">
+<p>A scanned PDF is a stack of page images. There is no text layer inside, so a tool that only extracts embedded text returns nothing useful. To get Markdown out of a scanned document, something has to read the pixels and recognize characters — that is OCR (optical character recognition). This guide covers what OCR does to your file, the conversion workflow, the failure cases that produce garbled output, and how to verify quality before the text reaches Obsidian, Notion, or an LLM pipeline.</p>
+
+<h2>Why scanned PDFs need OCR before they can become Markdown</h2>
+
+<p>PDFs fall into two categories, and the difference decides everything downstream:</p>
+
+<ul>
+<li><strong>Digital-born PDFs</strong> store text as characters. Extraction is essentially a copy-paste operation.</li>
+<li><strong>Scanned PDFs</strong> store a bitmap per page. The letters you see are ink, not data.</li>
+</ul>
+
+<p>Test it yourself: open the PDF and drag your cursor across a line. If words highlight, the file has a text layer and you can skip OCR — the steps in <a href="https://pdf.my99ai.com/blog/how-to-convert-pdf-to-markdown.html">convert PDF to Markdown</a> work directly. If nothing highlights, you are working with page images.</p>
+
+<p>OCR bridges the gap. The engine segments each page into lines and words, recognizes characters, and returns text with rough layout coordinates. A converter then maps those coordinates onto Markdown structure: large centered lines become <code>##</code> headings, indented blocks become lists, consecutive lines become paragraphs. Recognizing characters is only half the job; inferring which characters belong together and what role they play is the other half.</p>
+
+<h2>Step-by-step: converting a scanned PDF to Markdown</h2>
+
+<h3>1. Prepare the file before uploading</h3>
+
+<p>OCR quality is decided mostly by the input. A few minutes of preparation pays off:</p>
+
+<ul>
+<li>Target 300 DPI for text. Below roughly 200 DPI, small type and punctuation start dropping out.</li>
+<li>Deskew pages. Even a few degrees of tilt confuses line segmentation.</li>
+<li>Split double-page spreads (one scan showing two book pages) into one page per image, or the two halves merge into each other.</li>
+<li>Keep it as one PDF if you want one Markdown file; split it if you want a file per chapter.</li>
+</ul>
+
+<h3>2. Run the conversion</h3>
+
+<p>Open the <a href="https://pdf.my99ai.com/">free PDF to Markdown converter</a>, upload the scanned PDF, and select Markdown as the output format. OCR runs page by page. A 200-page scan takes noticeably longer than a digital-born PDF of the same length, because every page must be recognized rather than read.</p>
+
+<h3>3. Inspect the raw Markdown</h3>
+
+<p>Open the result in a plain text editor, not a rendered preview. You want to see the actual <code>#</code> characters, blank lines, and table pipes. Note where the structure broke: headings that came out as plain paragraphs, lists merged into a wall of text, tables flattened into loose lines.</p>
+
+<h3>4. Clean up and import</h3>
+
+<p>Fix the delimiters, delete running headers and page numbers that OCR preserved as body text, and add YAML frontmatter if your tool expects it. For a process that scales to a folder of files, see the <a href="https://pdf.my99ai.com/blog/pdf-to-markdown-workflow.html">PDF to Markdown workflow</a>.</p>
+
+<h2>Common failure cases and how to handle them</h2>
+
+<h3>Skewed or rotated pages</h3>
+
+<p>OCR engines assume text baselines are horizontal. A 90° or 180° rotation is usually detected automatically; a three-degree tilt from a hand-held phone scan often is not, and the page comes back as fragments. If one section of your document is garbled while the rest is clean, check those pages for skew, re-scan or deskew them, and convert again.</p>
+
+<h3>Handwriting</h3>
+
+<p>Most engines are trained on printed type. Handwritten annotations, signatures, and marginalia typically return as nonsense strings or disappear entirely. If your PDF mixes printed body text with handwritten notes, expect the printed text to convert and the handwriting to need manual transcription.</p>
+
+<h3>Multi-column layouts</h3>
+
+<p>This is the most common problem in academic papers. If the engine reads across the full page width, it interleaves the left and right columns sentence by sentence. Cropping each column into its own page before OCR fixes it. Otherwise you will be reordering paragraphs by hand after conversion.</p>
+
+<h3>Tables, footnotes, and formulas</h3>
+
+<p>Simple tables sometimes survive as Markdown tables; complex ones with merged cells usually come out as loose lines of text that you rebuild manually. Footnote markers drift away from their anchors. Inline math and equations almost always need to be re-entered. Budget time for these if your document is table- or formula-heavy.</p>
+
+<h3>Low resolution and poor contrast</h3>
+
+<p>Faint photocopies, faxed pages, and heavily compressed scans lose punctuation and thin strokes. Re-scan at a higher DPI while you still have the paper. If you do not, plan to proofread every line rather than spot-checking a few.</p>
+
+<h2>How to verify OCR output quality</h2>
+
+<p>Do not judge OCR by whether the first page looks fine. Use these checks:</p>
+
+<ol>
+<li><strong>Three-page comparison.</strong> Put the original and the Markdown side by side for the first, middle, and last page. Errors cluster on dense pages and on pages near a fold or shadow.</li>
+<li><strong>Search for known strings.</strong> Pick a proper noun, a number, and a technical term from the source and search the Markdown. Anything missing means recognition failed there.</li>
+<li><strong>Search for classic confusions.</strong> Look for <code>rn</code> where <code>m</code> belongs, and for <code>1</code>/<code>l</code>/<code>I</code>, <code>0</code>/<code>O</code>, <code>5</code>/<code>S</code>, <code>cl</code>/<code>d</code>. A handful is normal; dozens means the scan was too poor or the type too small.</li>
+<li><strong>Check structure separately from text.</strong> Even with clean characters, heading levels and list markers can be wrong. Verify that the Markdown's heading sequence matches the PDF's outline or table of contents.</li>
+</ol>
+
+<p>If several checks fail, do not repair the output by hand — improve the input and reconvert. The <a href="https://pdf.my99ai.com/blog/ocr-best-practices-for-scanned-pdfs.html">OCR best practices for scanned PDFs</a> guide covers resolution, preprocessing, and batch handling in more detail.</p>
+
+<h2>FAQ</h2>
+
+<h3>Can a scanned PDF be converted to Markdown without OCR?</h3>
+
+<p>No. Without a text layer there is nothing to extract. Any tool that appears to produce text from a scanned PDF is running OCR under the hood. The only alternative is typing or dictating the content yourself.</p>
+
+<h3>Will handwritten notes convert accurately?</h3>
+
+<p>Usually not. General-purpose OCR is built for printed characters, so handwriting comes back incomplete or garbled. Treat any handwritten portion as a manual transcription task and use OCR only for the printed parts of the document.</p>
+
+<h3>Why does my two-column paper come out scrambled?</h3>
+
+<p>The engine is reading across the full page width and interleaving the columns. Crop the PDF into single-column pages before converting, or reorder the paragraphs afterward. Skew makes this worse, so deskew the pages as well.</p>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-gray-200">
+        <div class="bg-indigo-50 rounded-lg p-4">
+          <p class="text-sm text-gray-700">
+            <strong>Ready to try it?</strong> <a href="/" class="text-indigo-600 hover:underline">Convert your first PDF for free</a> — 200 pages per month, no credit card required. More questions? Check the <a href="/#faq" class="text-indigo-600 hover:underline">FAQ</a> or the <a href="/blog/" class="text-indigo-600 hover:underline">blog</a>.
+          </p>
+        </div>
+      </div>
+
+      <nav class="mt-8 pt-6 border-t border-gray-200 flex justify-between">
+        <a href="/blog/" class="text-indigo-600 hover:text-indigo-700 font-medium">&larr; Back to Blog</a>
+        <a href="/" class="text-indigo-600 hover:text-indigo-700 font-medium">Try the converter &rarr;</a>
+      </nav>
+    </article>
+  </div>
+
+  <footer class="border-t border-gray-200 bg-white mt-auto">
+    <div class="max-w-3xl mx-auto px-4 py-8 text-sm text-gray-500">
+      <p>&copy; PDF to Markdown. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
