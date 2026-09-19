@@ -22,13 +22,13 @@ Google 对新组织强制禁用了服务账号密钥下载（组织政策
 1. Google Auth Platform（项目 pdf-my99ai）已创建桌面应用客户端 `pdf2md-seo-cli`，
    其 ID/密钥已存为 `GSC_OAUTH_CLIENT_ID` / `GSC_OAUTH_CLIENT_SECRET`
 2. 应用已发布为"正式版"（避免测试模式 7 天令牌过期）
-3. 刷新令牌获取流程（已由本地脚本 + `gsc-exchange` 工作流自动完成，无需手工操作）：
-   本地捕获授权码 → `GSC exchange` 工作流换取令牌 → 加密写入
-   `GSC_OAUTH_REFRESH_TOKEN`
+3. 刷新令牌获取流程（已于 2026-09-19 完成，无需手工操作）：
+   本地捕获授权码 → 换取令牌 → 加密写入 `GSC_OAUTH_REFRESH_TOKEN`
 
-如需重做授权：本地运行 `tools/_gsc_oauth_server.py`，浏览器打开
+如需重做授权：本地起回环服务接收 `http://localhost:8734` 的授权码，浏览器打开
 `https://accounts.google.com/o/oauth2/v2/auth?client_id=<ID>&redirect_uri=http://localhost:8734&response_type=code&scope=https://www.googleapis.com/auth/webmasters.readonly&access_type=offline&prompt=consent`，
-拿授权码后手动触发 `GSC exchange` 工作流填入 code。
+再用授权码 + 客户端凭据向 `https://oauth2.googleapis.com/token` 换取刷新令牌，
+最后更新 `GSC_OAUTH_REFRESH_TOKEN` Secret。
 
 ## IndexNow key
 
