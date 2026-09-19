@@ -1,0 +1,67 @@
+name: 'Deploy to server'
+description: '同步 origin/google 到服务器（git reset），按需重建后端容器，并做健康检查'
+inputs:
+  ssh-key:
+    description: '部署私钥（已装入服务器 authorized_keys）'
+    required: true
+  ssh-host:
+    description: '服务器 IP'
+    required: true
+  rebuild:
+    description: '是否重建后端容器（后端文件变更时为 true）'
+    required: true
+  indexnow-key:
+    description: 'IndexNow key（可选；提供时自动写入 static/<key>.txt）'
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Regenerate sitemap & RSS
+      shell: bash
+      run: |
+        python3 tools/gen_sitemap.py
+        python3 tools/gen_rss.py
+
+    - name: Write IndexNow key file
+      if: inputs.indexnow-key != ''
+      shell: bash
+      env:
+        INDEXNOW_KEY: ${{ inputs.indexnow-key }}
+      run: printf '%s' "$INDEXNOW_KEY" > "static/${INDEXNOW_KEY}.txt"
+
+    - name: Sync server to origin/google
+      shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh-key }}
+        SSH_HOST: ${{ inputs.ssh-host }}
+      run: |
+        mkdir -p ~/.ssh
+        printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "root@$SSH_HOST" \
+          'cd /app/pdf-markdown && git fetch origin && git reset --hard origin/google && git log --oneline -1'
+
+    - name: Rebuild backend containers
+      if: inputs.rebuild == 'true'
+      shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh-key }}
+        SSH_HOST: ${{ inputs.ssh-host }}
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "root@$SSH_HOST" \
+          'cd /app/pdf-markdown && docker compose up -d --build 2>&1 | tail -5'
+
+    - name: Health check
+      shell: bash
+      run: |
+        sleep 8
+        for path in / /sitemap.xml /rss.xml /og-image.png; do
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://pdf.my99ai.com$path")
+          echo "$path -> $code"
+          [ "$code" = "200" ] || { echo "::error::健康检查失败 $path ($code)"; exit 1; }
+        done
+        code=$(curl -s -o /dev/null -w '%{http_code}' https://pdf.my99ai.com/api/auth/config)
+        echo "/api/auth/config -> $code"
+        [ "$code" = "200" ] || { echo "::error::后端健康检查失败 ($code)"; exit 1; }
+        echo "部署健康检查全部通过"

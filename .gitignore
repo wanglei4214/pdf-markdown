@@ -234,3 +234,6 @@ __marimo__/
 
 # Node / 前端构建
 node_modules/
+
+# SEO 部署私钥（只放本地与 GitHub Secrets，绝不入库）
+seo/deploy_key*

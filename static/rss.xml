@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>PDF to Markdown Blog</title>
+    <link>https://pdf.my99ai.com/blog/</link>
+    <description>Guides and best practices for converting PDFs to Markdown with OCR</description>
+    <language>en</language>
+    <lastBuildDate>Sat, 19 Sep 2026 05:53:53 +0000</lastBuildDate>
+    <atom:link href="https://pdf.my99ai.com/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>Build Your Perfect PDF to Markdown Workflow | Automation &amp; Integration</title>
+      <link>https://pdf.my99ai.com/blog/pdf-to-markdown-workflow.html</link>
+      <guid>https://pdf.my99ai.com/blog/pdf-to-markdown-workflow.html</guid>
+      <pubDate>Tue, 17 Sep 2024 00:00:00 +0000</pubDate>
+      <description>Discover efficient workflows for PDF to Markdown conversion. Learn automation tips, integration strategies, and tools for research, technical docs, ebooks, and business documents.</description>
+    </item>
+    <item>
+      <title>OCR Best Practices: Getting Accurate Results from Scanned PDFs</title>
+      <link>https://pdf.my99ai.com/blog/ocr-best-practices-for-scanned-pdfs.html</link>
+      <guid>https://pdf.my99ai.com/blog/ocr-best-practices-for-scanned-pdfs.html</guid>
+      <pubDate>Mon, 16 Sep 2024 00:00:00 +0000</pubDate>
+      <description>Master optical character recognition with our guide. Learn how to prepare scanned documents, optimize OCR settings, and handle complex layouts for accurate PDF to Markdown conversion.</description>
+    </item>
+    <item>
+      <title>How to Convert PDF to Markdown: Complete Guide</title>
+      <link>https://pdf.my99ai.com/blog/how-to-convert-pdf-to-markdown.html</link>
+      <guid>https://pdf.my99ai.com/blog/how-to-convert-pdf-to-markdown.html</guid>
+      <pubDate>Sun, 15 Sep 2024 00:00:00 +0000</pubDate>
+      <description>Step-by-step guide to converting PDFs to Markdown format. Learn how to handle scanned PDFs, preserve tables, and organize your documents efficiently.</description>
+    </item>
+  </channel>
+</rss>

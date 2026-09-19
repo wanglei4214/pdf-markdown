@@ -72,6 +72,9 @@ py -3.10 -m venv .venv310
 - `tasks.db`：SQLite 数据库（运行时自动创建）
 - `Dockerfile` / `docker-compose.yml` / `nginx.conf`：Docker 部署配置
 - `doc/`：功能说明与需求文档
+- `seo/`：SEO 自动化（关键词库、GSC 周报、凭据配置指南见 `seo/SECRETS-SETUP.md`）
+- `tools/`：运维脚本（sitemap/RSS/OG图 生成、每周文章生成、IndexNow 推送）
+- `.github/workflows/`：push 自动部署（google 分支）+ 每周一自动 SEO 流水线
 - `requirements.txt`：Python 依赖
 - `start.ps1`：Windows 本地启动脚本
 

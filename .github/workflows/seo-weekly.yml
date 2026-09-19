@@ -1,0 +1,139 @@
+name: SEO weekly
+
+# 每周日 23:00 UTC = 周一 07:00 北京时间；也可手动触发
+on:
+  schedule:
+    - cron: '0 23 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seo-weekly
+  cancel-in-progress: false
+
+jobs:
+  content:
+    name: 生成并发布本周文章
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.gen.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate article
+        id: gen
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_API_BASE: ${{ vars.LLM_API_BASE }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+        run: |
+          if [ -z "$LLM_API_KEY" ]; then
+            echo "::warning::未配置 LLM_API_KEY，跳过内容生成。配置步骤见 seo/SECRETS-SETUP.md"
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 tools/gen_article.py
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit & push article
+        if: steps.gen.outputs.published == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/blog seo/published.json static/sitemap.xml static/rss.xml
+          if git diff --cached --quiet; then
+            echo "没有需要提交的变更"
+          else
+            git commit -m "seo: weekly article"
+            git push origin HEAD:google
+          fi
+
+      - name: Check deploy credentials
+        if: steps.gen.outputs.published == 'true'
+        id: cfg
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$HOST" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::缺少 SSH secrets，文章已入库但未部署。配置步骤见 seo/SECRETS-SETUP.md"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy new article
+        if: steps.gen.outputs.published == 'true' && steps.cfg.outputs.configured == 'true'
+        uses: ./.github/actions/deploy
+        with:
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-host: ${{ secrets.SSH_HOST }}
+          rebuild: false
+          indexnow-key: ${{ secrets.INDEXNOW_KEY }}
+
+  report:
+    name: Search Console 周报
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check GSC credentials
+        id: cfg
+        env:
+          GSC: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GSC" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::未配置 GSC_SERVICE_ACCOUNT_JSON，跳过周报。配置步骤见 seo/SECRETS-SETUP.md"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate report
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 -m pip install --quiet pyjwt cryptography requests
+          python3 tools/seo_report.py
+
+      - name: Commit report
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add seo/reports
+          if git diff --cached --quiet; then
+            echo "没有需要提交的变更"
+          else
+            git commit -m "seo: weekly report"
+            git push origin HEAD:google
+          fi
+
+  indexnow:
+    name: IndexNow 推送
+    needs: content
+    if: needs.content.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check IndexNow key
+        id: cfg
+        env:
+          KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::未配置 INDEXNOW_KEY，跳过推送。配置步骤见 seo/SECRETS-SETUP.md"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ping IndexNow
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: python3 tools/indexnow_ping.py --all

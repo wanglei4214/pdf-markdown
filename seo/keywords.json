@@ -1,0 +1,97 @@
+{
+  "_comment": "无人值守内容流水线的目标关键词库。gen_article.py 每次取 keywords 里第一个未发布的词；写完一轮后在 'later' 里补充新词。angle 是给 LLM 的写作角度提示。",
+  "keywords": [
+    {
+      "keyword": "convert scanned pdf to markdown",
+      "slug": "convert-scanned-pdf-to-markdown",
+      "angle": "Explain how OCR makes scanned PDFs convertible, walk through the exact workflow on our converter, cover common failure cases (skewed scans, handwriting, multi-column layouts) and how to verify OCR output quality."
+    },
+    {
+      "keyword": "pdf to markdown converter online free",
+      "slug": "pdf-to-markdown-converter-online-free",
+      "angle": "Honest overview of what a free online converter should offer (page limits, privacy, table preservation), comparison criteria checklist, and where our free 200 pages/month tier fits. Avoid bashing competitors by name."
+    },
+    {
+      "keyword": "pdf table to markdown",
+      "slug": "pdf-table-to-markdown",
+      "angle": "Deep dive on extracting tables from PDFs into GFM pipe tables: why tables break in naive conversion, field tables vs comparison tables vs return-code tables, and how to fix misaligned columns manually."
+    },
+    {
+      "keyword": "pdf to obsidian markdown",
+      "slug": "pdf-to-obsidian-markdown",
+      "angle": "Workflow for getting PDF content into Obsidian vaults: headings map to headings, tables stay as pipe tables, frontmatter suggestions, folder organization by chapter, linking notes. Obsidian users are a core audience."
+    },
+    {
+      "keyword": "extract pdf headings to markdown outline",
+      "slug": "extract-pdf-headings-to-markdown-outline",
+      "angle": "How PDF bookmarks/TOC become Markdown headings, how to build a clean document outline from a 100+ page manual, and why heading hierarchy matters for downstream tools."
+    },
+    {
+      "keyword": "pandoc pdf to markdown limitations",
+      "slug": "pandoc-pdf-to-markdown-limitations",
+      "angle": "Explain why pandoc cannot read PDF input directly (PDF is an output format), what workarounds exist (pdftotext + cleanup, python pipelines), and when a dedicated online converter is the faster path. Fair and technical."
+    },
+    {
+      "keyword": "convert pdf to markdown with python",
+      "slug": "convert-pdf-to-markdown-with-python",
+      "angle": "Developer-oriented: overview of pypdf/PyMuPDF text extraction, OCR fallback with RapidOCR, table detection challenges, then present our hosted converter as the no-maintenance option for teams. Include small honest code snippets."
+    },
+    {
+      "keyword": "pdf to markdown for RAG pipelines",
+      "slug": "pdf-to-markdown-for-rag-pipelines",
+      "angle": "Why Markdown is the best chunking input for RAG (headings as semantic boundaries, tables preserved), how to preprocess PDFs for LLM knowledge bases, chunking strategy by heading levels."
+    },
+    {
+      "keyword": "batch convert multiple pdfs to markdown",
+      "slug": "batch-convert-multiple-pdfs-to-markdown",
+      "angle": "Strategies for converting document sets: naming conventions, queueing with our task system, monthly page quotas and planning, organizing outputs into folders."
+    },
+    {
+      "keyword": "ocr best practices for old scanned documents",
+      "slug": "ocr-best-practices-old-scanned-documents",
+      "angle": "Practical preprocessing tips: scan resolution, deskewing, language settings, handling stamps and margin notes, when manual review is needed. Complements the existing OCR best practices post with interlink."
+    },
+    {
+      "keyword": "academic paper pdf to markdown",
+      "slug": "academic-paper-pdf-to-markdown",
+      "angle": "For researchers/students: converting lecture notes and papers for note-taking, citation handling caveats, equations limitations honesty, keeping tables for literature reviews."
+    },
+    {
+      "keyword": "pdf user manual to markdown documentation",
+      "slug": "pdf-user-manual-to-markdown-documentation",
+      "angle": "For technical writers: turning PDF manuals into maintainable docs, bookmark-based chapter structure, code blocks preserved, publishing to docs sites like MkDocs/Docusaurus."
+    },
+    {
+      "keyword": "image-only pdf text extraction guide",
+      "slug": "image-only-pdf-text-extraction-guide",
+      "angle": "What image-only PDFs are, how to detect them, why copy-paste fails, and OCR-based extraction workflow end to end."
+    },
+    {
+      "keyword": "markdown folder structure from pdf bookmarks",
+      "slug": "markdown-folder-structure-from-pdf-bookmarks",
+      "angle": "Splitting long PDFs into per-chapter Markdown files using bookmark levels, naming conventions, and assembling a mini knowledge base."
+    }
+  ],
+  "later": [
+    {
+      "keyword": "pdf zu markdown konverter deutsch",
+      "slug": "pdf-zu-markdown-konverter",
+      "angle": "German-language article (write the article in German). Same quality bar; German market has weak competition."
+    },
+    {
+      "keyword": "convertir pdf a markdown gratis",
+      "slug": "convertir-pdf-a-markdown",
+      "angle": "Spanish-language article (write the article in Spanish)."
+    },
+    {
+      "keyword": "mathpix markdown alternative",
+      "slug": "mathpix-markdown-alternative",
+      "angle": "Comparison article. Research actual current pricing/features first; be fair, focus on general document conversion vs math-focused tools."
+    },
+    {
+      "keyword": "pdf to notion markdown import",
+      "slug": "pdf-to-notion-markdown-import",
+      "angle": "Notion import workflow: what Notion accepts, how to prepare Markdown files, limitations of Notion's importer."
+    }
+  ]
+}
