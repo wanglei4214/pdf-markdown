@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 import models
-from ocr_engine import OcrEngine
+from ocr_engine import OcrEngine, TaskCancelled
 
 # Google 登录配置：在 Google Cloud Console 创建 OAuth 2.0 Client ID（Web application），
 # 并把访问来源（如 http://localhost:8000）加入 Authorized JavaScript origins。
@@ -150,21 +150,19 @@ def _round_robin_scheduler():
     """时间片轮转调度器：轮流从每个用户的任务队列中取任务执行。"""
     while _scheduler_running:
         with _queue_lock:
-            # 获取所有有任务的用户列表
-            active_users = [uid for uid, q in _user_task_queues.items() if q]
-            if not active_users:
-                # 无任务时短暂休眠
-                pass
-            else:
-                # 轮转：从第一个用户队列取任务
-                user_id = active_users[0]
+            # 取队首有任务的用户
+            user_id = next((uid for uid, q in _user_task_queues.items() if q), None)
+            if user_id is not None:
                 queue = _user_task_queues[user_id]
                 task_id, pdf_path, reserved_pages = queue.popleft()
-                
-                # 如果该用户队列空了，删除
+
                 if not queue:
+                    # 该用户队列空了，移除
                     del _user_task_queues[user_id]
-                
+                else:
+                    # 轮转：把该用户移到末尾，下一轮机会轮到其他用户
+                    _user_task_queues[user_id] = _user_task_queues.pop(user_id)
+
                 # 启动 OCR 线程处理该任务
                 thread = threading.Thread(
                     target=_run_ocr,
@@ -174,7 +172,7 @@ def _round_robin_scheduler():
                 _active_threads[task_id] = thread
                 thread.start()
                 logger.info('调度器分配任务 %s 给用户 %s', task_id, user_id)
-        
+
         # 短暂休眠避免 CPU 空转
         threading.Event().wait(0.5)
 
@@ -643,6 +641,11 @@ def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
             total_pages=total,
         )
 
+    def is_cancelled() -> bool:
+        """取消检查点：删除任务时把 task_id 加入 _cancelled_tasks，OCR 在页边界中断。"""
+        with _cancelled_lock:
+            return task_id in _cancelled_tasks
+
     try:
         # 排队等待 OCR 槽位；等待期间保持 pending，拿到槽位后才标记 processing。
         # 这样多个任务会串行执行，避免并发调用同一 OCR 实例导致 native 崩溃 / OOM。
@@ -655,11 +658,12 @@ def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
                     logger.info('任务 %s 已被取消，跳过处理', task_id)
                     _cancelled_tasks.discard(task_id)
                     return
-            
+
             logger.info('任务 %s 开始处理', task_id)
             models.update_task_status(task_id, status='processing', current_page=0, total_pages=0)
             engine = get_engine()
-            engine.process_pdf(pdf_path, str(output_path), progress_callback=on_progress)
+            engine.process_pdf(pdf_path, str(output_path),
+                               progress_callback=on_progress, cancel_check=is_cancelled)
         finally:
             _ocr_slots.release()
 
@@ -677,6 +681,11 @@ def _run_ocr(task_id: str, pdf_path: str, reserved_pages: int = 0):
             error_message=None,
         )
         logger.info('任务 %s 处理完成', task_id)
+    except TaskCancelled:
+        # 任务已被删除：记录与文件由删除接口清理，配额也已由其返还，这里安静退出即可
+        with _cancelled_lock:
+            _cancelled_tasks.discard(task_id)
+        logger.info('任务 %s 已取消，处理已中断', task_id)
     except Exception:
         logger.exception('任务 %s 处理失败', task_id)
         if reserved_pages:

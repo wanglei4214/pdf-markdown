@@ -8,8 +8,9 @@ services:
     environment:
       DB_PATH: /app/data/tasks.db
       DATA_DIR: /app/data
-      # OCR 并发槽位数，默认 1（串行）。不建议在同进程内调大。
-      OCR_MAX_CONCURRENCY: "1"
+      # OCR 并发槽位数，与代码默认值一致（2 个任务并行，更多任务排队等待）。
+      # 内存占用高，调大前先确认 deploy.resources.limits.memory 足够。
+      OCR_MAX_CONCURRENCY: "2"
       # Google 登录：Google Cloud Console 中创建 OAuth 2.0 Client ID（Web application）
       # Client ID 是公开值（前端也会用到），可作为默认值写在这里
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-724994158367-9cva8vq6o80cfitkfut7fcis64d7hhde.apps.googleusercontent.com}"

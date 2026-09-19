@@ -1,0 +1,11 @@
+{
+  "name": "pdf-markdown-frontend",
+  "private": true,
+  "description": "static/ 页面的前端构建工具（Tailwind CSS 预编译，替代 Play CDN）",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/tailwind.input.css -o ./static/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -34,6 +34,7 @@ def init_db():
             email TEXT,
             name TEXT,
             picture TEXT,
+            customer_id TEXT,
             created_at TEXT NOT NULL
         )
     ''')
@@ -43,6 +44,8 @@ def init_db():
         conn.execute('ALTER TABLE users ADD COLUMN used_pages INTEGER NOT NULL DEFAULT 0')
     if 'quota_month' not in existing_user_cols:
         conn.execute('ALTER TABLE users ADD COLUMN quota_month TEXT')
+    if 'customer_id' not in existing_user_cols:
+        conn.execute('ALTER TABLE users ADD COLUMN customer_id TEXT')
     conn.execute('''
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
@@ -278,7 +281,10 @@ def quota_status(user_id: str) -> dict:
 
 
 def try_consume_pages(user_id: str, n: int) -> dict | None:
-    """上传时预扣页数；剩余配额不足返回 None。跨月时先清零再扣。"""
+    """上传时预扣页数；剩余配额不足返回 None。跨月时先清零再扣。
+
+    扣减用带条件的原子 UPDATE 完成，避免同用户并发上传时"读-改-写"互相覆盖、
+    导致超限或漏计。"""
     conn = _connect()
     conn.row_factory = sqlite3.Row
     row = conn.execute(
@@ -294,11 +300,21 @@ def try_consume_pages(user_id: str, n: int) -> dict | None:
     if used + n > limit:
         conn.close()
         return None
+    # 跨月残留先清零（幂等；条件更新保证并发下只有一次生效）
     conn.execute(
-        'UPDATE users SET used_pages = ?, quota_month = ? WHERE id = ?', (used + n, month, user_id)
-    )
+        'UPDATE users SET used_pages = 0, quota_month = ? '
+        'WHERE id = ? AND (quota_month IS NULL OR quota_month != ?)',
+        (month, user_id, month))
+    # 原子扣减：used_pages 超限时 WHERE 不命中（rowcount=0），并发下也不会扣超
+    cursor = conn.execute(
+        'UPDATE users SET used_pages = used_pages + ?, quota_month = ? '
+        'WHERE id = ? AND quota_month = ? AND used_pages + ? <= ?',
+        (n, month, user_id, month, n, limit))
     conn.commit()
+    ok = cursor.rowcount > 0
     conn.close()
+    if not ok:
+        return None
     return {'plan': 'pro' if pro else 'free', 'used_pages': used + n,
             'limit': limit, 'month': month}
 

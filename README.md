@@ -65,6 +65,8 @@ py -3.10 -m venv .venv310
 - `models.py`：SQLite 任务模型
 - `ocr_engine.py`：OCR 与文字层转 Markdown 核心逻辑
 - `static/`：前端页面（index.html、app.js、style.css）
+- `static/tailwind.css`：Tailwind 预编译产物（替代 Play CDN，已提交，部署无需 Node）
+- `tailwind.config.js` / `package.json`：Tailwind 构建配置（改动 HTML/JS 中的类名后需重新构建）
 - `uploads/`：上传的 PDF（运行时自动创建）
 - `outputs/`：生成的 Markdown（运行时自动创建）
 - `tasks.db`：SQLite 数据库（运行时自动创建）
@@ -72,6 +74,19 @@ py -3.10 -m venv .venv310
 - `doc/`：功能说明与需求文档
 - `requirements.txt`：Python 依赖
 - `start.ps1`：Windows 本地启动脚本
+
+## 前端样式构建（Tailwind）
+
+页面不再使用 Tailwind Play CDN（生产不推荐），改为本地预编译：`static/tailwind.css` 是构建产物，随代码一起提交，服务器部署不需要 Node。
+
+```powershell
+# 首次安装依赖（只需一次）
+npm install
+# 修改了 HTML / app.js 中的类名后重新构建
+npm run build:css
+```
+
+扫描范围由 `tailwind.config.js` 的 `content` 指定（static 下所有 HTML 与 JS），自定义样式仍在 `static/style.css`，页面按 tailwind.css → style.css 顺序加载。
 
 ## SSL 证书
 

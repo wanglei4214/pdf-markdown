@@ -33,6 +33,16 @@ OCR_NUMBERED_HEADING_RE = re.compile(
 TEXT_LAYER_THRESHOLD = 100
 
 
+class TaskCancelled(Exception):
+    """任务被用户取消：在页边界检查点抛出，用于中断已开始的处理。"""
+
+
+def _check_cancel(cancel_check):
+    """页边界取消检查：cancel_check() 返回 True 时抛出 TaskCancelled。"""
+    if cancel_check is not None and cancel_check():
+        raise TaskCancelled()
+
+
 def _text_layer_is_reliable(text: str) -> bool:
     """判断清洗后的文字层是否足够可靠，避免把明显乱码当作正常文本。"""
     text = _clean_text_layer(text)
@@ -746,10 +756,11 @@ def _md_is_heading_like(text, cells):
     return False
 
 
-def _md_build_stream(reader, page_payloads=None):
+def _md_build_stream(reader, page_payloads=None, cancel_check=None):
     """流：[('pb', page_idx) | ('line', (page_idx, text, cells)), ...]。"""
     stream = []
     for pidx, page in enumerate(reader.pages):
+        _check_cancel(cancel_check)
         if page_payloads is not None and pidx in page_payloads:
             for y, left_x, text in page_payloads[pidx]:
                 cells = [(text, left_x, left_x + max(len(text), 1))]
@@ -762,10 +773,10 @@ def _md_build_stream(reader, page_payloads=None):
     return stream
 
 
-def convert_text_pdf(reader, page_payloads=None):
+def convert_text_pdf(reader, page_payloads=None, cancel_check=None):
     """把文字版 PDF（pypdf PdfReader）语义化转换为 Markdown。
     表格 -> Markdown 表格；PDF 书签 -> 目录 + 章节标题；代码 -> 代码块。"""
-    stream = _md_build_stream(reader, page_payloads)
+    stream = _md_build_stream(reader, page_payloads, cancel_check)
     marks = _md_extract_bookmarks(reader)
 
     # 目录
@@ -777,6 +788,7 @@ def convert_text_pdf(reader, page_payloads=None):
     match_at = [None] * len(marks)
     used = set()
     for mi, (mp, _lv, title) in enumerate(marks):
+        _check_cancel(cancel_check)
         ck = _md_title_key(_md_bookmark_core(title))
         if not ck or len(ck) < 2:
             continue
@@ -857,6 +869,7 @@ def convert_text_pdf(reader, page_payloads=None):
     n = len(stream)
     while i < n:
         if stream[i][0] == 'pb':
+            _check_cancel(cancel_check)
             i += 1
             continue
         pidx, text, cells = stream[i][1]
@@ -1107,7 +1120,7 @@ class OcrEngine:
             return ('text', _clean_text_layer(raw_text))
         return ('ocr', [])
 
-    def process_pdf(self, pdf_path: str, out_path: str, progress_callback=None):
+    def process_pdf(self, pdf_path: str, out_path: str, progress_callback=None, cancel_check=None):
         reader = PdfReader(pdf_path)
         total = len(reader.pages)
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
@@ -1116,6 +1129,7 @@ class OcrEngine:
         ocr_payloads = {}
         reliable_text_pages = 0
         for idx, page in enumerate(reader.pages):
+            _check_cancel(cancel_check)
             try:
                 raw_text = page.extract_text(extraction_mode='layout') or ''
             except Exception:
@@ -1141,16 +1155,18 @@ class OcrEngine:
                 ocr_payloads[idx] = payload
 
         if reliable_text_pages == total:
-            md = convert_text_pdf(reader)
+            md = convert_text_pdf(reader, cancel_check=cancel_check)
         elif reliable_text_pages == 0:
             # 纯扫描版没有可用文字层，直接使用 OCR 的标题/段落重建，
             # 避免把每个 OCR 行作为普通段落导致前端无法生成目录。
-            md = self._convert_ocr_payloads(ocr_payloads, total, progress_callback)
+            md = self._convert_ocr_payloads(ocr_payloads, total, progress_callback,
+                                            cancel_check=cancel_check)
         else:
             # 混合 PDF 按页替换扫描页内容，文字页仍使用坐标重建表格/标题。
-            md = convert_text_pdf(reader, ocr_payloads)
+            md = convert_text_pdf(reader, ocr_payloads, cancel_check=cancel_check)
             if not md.strip():
-                md = self._convert_ocr_payloads(ocr_payloads, total, progress_callback)
+                md = self._convert_ocr_payloads(ocr_payloads, total, progress_callback,
+                                                cancel_check=cancel_check)
 
         with open(out_path, 'w', encoding='utf-8') as f:
             f.write(md)
@@ -1159,10 +1175,11 @@ class OcrEngine:
         if progress_callback:
             progress_callback(total, total)
 
-    def _convert_ocr_payloads(self, payloads, total, progress_callback=None):
+    def _convert_ocr_payloads(self, payloads, total, progress_callback=None, cancel_check=None):
         """将扫描页 OCR 行按页顺序转换为普通 Markdown。"""
         out = []
         for idx in range(total):
+            _check_cancel(cancel_check)
             rows = payloads.get(idx, [])
             if progress_callback:
                 progress_callback(idx + 1, total)

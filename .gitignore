@@ -231,3 +231,6 @@ __marimo__/
 
 # 一次性调试脚本
 /_inspect_pdf.py
+
+# Node / 前端构建
+node_modules/
