@@ -278,6 +278,18 @@ body.result-view #result-content {
   margin-bottom: 0.75em;
 }
 
+.prose h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.prose h3 {
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .prose p {
   margin-bottom: 1em;
   line-height: 1.8;
