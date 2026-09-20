@@ -20,12 +20,9 @@ jobs:
     outputs:
       published: ${{ steps.gen.outputs.published }}
     steps:
-      # 定时触发只能从默认分支（main）启动，但实际工作分支是 google：
-      # 显式检出 google，保证 published.json 等状态始终最新，
-      # 否则每次定时运行会重复生成同一篇文章（词队列不前进）。
+      # 定时触发从默认分支（main）启动；机器人提交也推送到 main，
+      # published.json 状态始终保持在 main 上，无需跨分支检出。
       - uses: actions/checkout@v4
-        with:
-          ref: google
 
       - name: Generate article
         id: gen
@@ -52,7 +49,7 @@ jobs:
             echo "没有需要提交的变更"
           else
             git commit -m "seo: weekly article"
-            git push origin HEAD:google
+            git push origin HEAD:main
           fi
 
       - name: Check deploy credentials
@@ -84,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: google
+          ref: main
 
       - name: Check GSC credentials
         id: cfg
@@ -120,7 +117,7 @@ jobs:
             echo "没有需要提交的变更"
           else
             git commit -m "seo: weekly report"
-            git push origin HEAD:google
+            git push origin HEAD:main
           fi
 
   indexnow:

@@ -47,6 +47,6 @@ Variables 里加 `LLM_API_BASE`（如 `https://api.deepseek.com/v1`）和 `LLM_M
 
 ## 工作流说明
 
-- `Deploy`：push 到 google 分支即部署；后端文件变更时自动重建容器；可手动触发
+- `Deploy`：push 到 main 分支即部署；后端文件变更时自动重建容器；可手动触发
 - `SEO weekly`：每周日 23:00 UTC 自动跑（文章 + 周报 + IndexNow）；可手动触发
 - `GSC exchange`：一次性，用于换取/更换刷新令牌

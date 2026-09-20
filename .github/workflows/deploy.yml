@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [google]
+    branches: [main]
   workflow_dispatch:
     inputs:
       rebuild:

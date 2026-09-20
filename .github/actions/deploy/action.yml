@@ -1,5 +1,5 @@
 name: 'Deploy to server'
-description: '同步 origin/google 到服务器（git reset），按需重建后端容器，并做健康检查'
+description: '同步 origin/main 到服务器（git reset），按需重建后端容器，并做健康检查'
 inputs:
   ssh-key:
     description: '部署私钥（已装入服务器 authorized_keys）'
@@ -30,7 +30,7 @@ runs:
         INDEXNOW_KEY: ${{ inputs.indexnow-key }}
       run: printf '%s' "$INDEXNOW_KEY" > "static/${INDEXNOW_KEY}.txt"
 
-    - name: Sync server to origin/google
+    - name: Sync server to origin/main
       shell: bash
       env:
         SSH_KEY: ${{ inputs.ssh-key }}
@@ -40,7 +40,7 @@ runs:
         printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "root@$SSH_HOST" \
-          'cd /app/pdf-markdown && git fetch origin && git reset --hard origin/google && git log --oneline -1'
+          'cd /app/pdf-markdown && git fetch origin && git reset --hard origin/main && git log --oneline -1'
 
     - name: Rebuild backend containers
       if: inputs.rebuild == 'true'
