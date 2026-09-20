@@ -5,14 +5,22 @@
 
 配置入口：仓库页 → `Settings` → `Secrets and variables` → `Actions` → `New repository secret`。
 
-## 当前状态（2026-09-19）
+## 当前状态（2026-09-20）
 
 | 模块 | 依赖 Secret | 状态 |
 |---|---|---|
-| 自动部署（push 即部署 + 健康检查） | `SSH_PRIVATE_KEY` `SSH_HOST` | ✅ 已配置并验证 |
-| GSC 每周关键词报表 | `GSC_OAUTH_CLIENT_ID` `GSC_OAUTH_CLIENT_SECRET` `GSC_OAUTH_REFRESH_TOKEN` | ⏳ 前两个已配置，等刷新令牌 |
-| IndexNow 推送（Bing/Yahoo/DuckDuckGo） | `INDEXNOW_KEY` | ⏳ 待配置 |
-| 每周文章生成 | `LLM_API_KEY`（可选 `LLM_API_BASE` `LLM_MODEL` 变量） | ⏳ 待配置 |
+| 自动部署（push 到 main 即部署 + 健康检查） | `SSH_PRIVATE_KEY` `SSH_HOST` | ✅ 已配置并验证 |
+| GSC 每周关键词报表 | `GSC_OAUTH_CLIENT_ID` `GSC_OAUTH_CLIENT_SECRET` `GSC_OAUTH_REFRESH_TOKEN` | ✅ 已配置并验证 |
+| IndexNow 推送（Bing/Yahoo/DuckDuckGo） | `INDEXNOW_KEY` | ✅ 已配置并验证 |
+| 每周文章生成 | `LLM_API_KEY`（Variables：`LLM_API_BASE` `LLM_MODEL`） | ✅ 已配置并验证（DeepSeek） |
+| Dev.to 文章转发（白帽外链，canonical 指回原文） | `DEVTO_API_KEY` | ⏳ 待配置：dev.to 新账号暂无法生成 API key（生成页 404，账号需养几天），待 key 可生成后补入 |
+
+## Dev.to 文章转发
+
+工作流会在每篇新文章发布后自动转发一份到 dev.to（canonical 指向原文）。
+`DEVTO_API_KEY` 获取：登录 dev.to → 头像 → Settings → Extensions → 页面底部
+"DEV Community API Keys" → 填描述 → Generate API Key → 复制。
+注意：新注册账号该功能可能暂时 404，养几天账号后再试。
 
 ## GSC 报表（OAuth 方案）
 

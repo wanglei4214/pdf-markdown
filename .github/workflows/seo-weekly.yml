@@ -52,6 +52,16 @@ jobs:
             git push origin HEAD:main
           fi
 
+      - name: Cross-post to Dev.to
+        if: steps.gen.outputs.published == 'true'
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+        run: |
+          python3 -m pip install --quiet markdownify
+          SLUG=$(python3 -c "import json;print(json.load(open('seo/published.json'))['published'][-1])")
+          python3 tools/devto_crosspost.py --slug "$SLUG" \
+            || echo "::warning::Dev.to 转发失败（尽力而为，不影响发布）"
+
       - name: Check deploy credentials
         if: steps.gen.outputs.published == 'true'
         id: cfg
