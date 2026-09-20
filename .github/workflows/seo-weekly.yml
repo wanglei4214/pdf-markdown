@@ -20,7 +20,12 @@ jobs:
     outputs:
       published: ${{ steps.gen.outputs.published }}
     steps:
+      # 定时触发只能从默认分支（main）启动，但实际工作分支是 google：
+      # 显式检出 google，保证 published.json 等状态始终最新，
+      # 否则每次定时运行会重复生成同一篇文章（词队列不前进）。
       - uses: actions/checkout@v4
+        with:
+          ref: google
 
       - name: Generate article
         id: gen
@@ -78,6 +83,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: google
 
       - name: Check GSC credentials
         id: cfg
