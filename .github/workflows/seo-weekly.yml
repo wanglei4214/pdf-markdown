@@ -49,6 +49,7 @@ jobs:
             echo "没有需要提交的变更"
           else
             git commit -m "seo: weekly article"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
 
@@ -87,6 +88,10 @@ jobs:
 
   report:
     name: Search Console 周报
+    needs: content
+    # content 失败也要出周报（always），但串行在 content 之后，
+    # 避免两个任务同时向 main 推送产生非快进冲突
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -127,6 +132,7 @@ jobs:
             echo "没有需要提交的变更"
           else
             git commit -m "seo: weekly report"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
 

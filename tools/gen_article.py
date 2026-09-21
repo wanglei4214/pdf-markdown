@@ -312,9 +312,15 @@ def main():
     else:
         title = description = html = None
         critique = ''
-        for attempt in (1, 2):
+        for attempt in (1, 2, 3):
             log(f'调用 LLM 生成文章（第 {attempt} 次）...')
-            data = call_llm(keyword, angle + ('\n\n改进要求：\n' + critique if critique else ''))
+            try:
+                data = call_llm(keyword, angle + ('\n\n改进要求：\n' + critique if critique else ''))
+            except requests.RequestException as e:
+                log(f'  LLM 调用网络错误，重试: {str(e)[:100]}')
+                critique = '上次调用中断，请重新完整输出。'
+                time.sleep(3)
+                continue
             title, description, html = data['title'], data['description'], data['html']
             problems, words = check_gate(title, description, html)
             log(f'  词数={words}，门槛问题: {problems or "无，通过"}')
