@@ -335,7 +335,17 @@ def main():
     if problems:
         raise SystemExit(f'质量门槛未通过: {problems}')
     read_min = max(2, math.ceil(words / 220))
+    # 发布日期去重：默认今天；若已有文章占用该日期，向前找到空闲日期
+    import datetime as _dt
     date_str = time.strftime('%Y-%m-%d')
+    used_dates = set(re.findall(r'article:published_time" content="(\d{4}-\d{2}-\d{2})',
+                                '\n'.join(p.read_text(encoding='utf-8') for p in BLOG.glob('*.html'))))
+    if date_str in used_dates:
+        d = _dt.date.today()
+        while d.strftime('%Y-%m-%d') in used_dates:
+            d -= _dt.timedelta(days=1)
+        date_str = d.strftime('%Y-%m-%d')
+        log(f'  今日日期已被占用，发布日期调整为 {date_str}')
 
     page = build_page(slug, title, description, html, read_min, date_str)
     out = BLOG / f'{slug}.html'
