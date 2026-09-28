@@ -242,3 +242,5 @@ seo/deploy_key*
 seo/oauth_client.json
 .gsc_refresh_token
 .gsc_code
+
+_memcheck.py
