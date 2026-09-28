@@ -269,9 +269,15 @@ def insert_card(slug, title, description, read_min):
     card = CARD.format(slug=slug, title=escape_attr(title),
                        description=escape_attr(description), read_min=read_min)
     marker = '<!-- article-card-insert-point -->'
-    if marker not in src:
-        raise RuntimeError('blog index insert marker missing')
-    src = src.replace(marker, card, 1)
+    if marker in src:
+        src = src.replace(marker, card, 1)
+    elif '<div class="grid gap-6">' in src:
+        # 标记丢失时自愈：插入到卡片容器顶部，并补回标记
+        src = src.replace('<div class="grid gap-6">',
+                          '<div class="grid gap-6">\n' + card + '  ' + marker, 1)
+        log('  警告：插入标记缺失，已自愈并补回标记')
+    else:
+        raise RuntimeError('blog index 既无标记也无卡片容器')
     index_path.write_text(src, encoding='utf-8')
 
 

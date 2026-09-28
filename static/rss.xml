@@ -5,8 +5,15 @@
     <link>https://pdf.my99ai.com/blog/</link>
     <description>Guides and best practices for converting PDFs to Markdown with OCR</description>
     <language>en</language>
-    <lastBuildDate>Mon, 21 Sep 2026 04:09:43 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 28 Sep 2026 13:27:11 +0000</lastBuildDate>
     <atom:link href="https://pdf.my99ai.com/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>PDF Table to Markdown: Fixing Broken Pipe Tables</title>
+      <link>https://pdf.my99ai.com/blog/pdf-table-to-markdown.html</link>
+      <guid>https://pdf.my99ai.com/blog/pdf-table-to-markdown.html</guid>
+      <pubDate>Sun, 27 Sep 2026 00:00:00 +0000</pubDate>
+      <description>Why PDF tables break during conversion to GFM pipe tables, how field, comparison, and code tables differ, and how to repair misaligned columns.</description>
+    </item>
     <item>
       <title>PDF to Markdown Converter Online Free: What to Expect</title>
       <link>https://pdf.my99ai.com/blog/pdf-to-markdown-converter-online-free.html</link>
