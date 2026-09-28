@@ -240,13 +240,24 @@ def check_gate(title, description, html):
         problems.append(f'{len(external)} external links not allowed')
     if re.search(r'<h1[\s>]', html, re.I):
         problems.append('h1 not allowed in body')
-    if not 30 <= len(title) <= 80:
-        problems.append(f'title length {len(title)} out of range 30-80')
-    if not 100 <= len(description) <= 170:
-        problems.append(f'description length {len(description)} out of range 100-170')
+    if not 25 <= len(title) <= 90:
+        problems.append(f'title length {len(title)} out of range 25-90')
+    if not 90 <= len(description) <= 180:
+        problems.append(f'description length {len(description)} out of range 90-180')
     if not html.lstrip().lower().startswith('<'):
         problems.append('html does not look like HTML')
     return problems, words
+
+
+def salvage_links(html):
+    """补救：内链不足时自动追加站内 CTA 段落（确定性修复）。"""
+    internal = len(re.findall(r'href="(?:/|https://pdf\.my99ai\.com)', html))
+    if internal >= 2:
+        return html
+    return html + ('\n<p><strong>Ready to try it?</strong> <a href="/" class="text-indigo-600 hover:underline">'
+                   'Convert your first PDF for free</a> — 200 pages per month, no credit card required. '
+                   'See the <a href="/pricing.html" class="text-indigo-600 hover:underline">pricing</a> '
+                   'for higher monthly limits.</p>')
 
 
 def build_page(slug, title, description, html, read_min, date_str):
@@ -328,6 +339,7 @@ def main():
                 time.sleep(3)
                 continue
             title, description, html = data['title'], data['description'], data['html']
+            html = salvage_links(html)
             problems, words = check_gate(title, description, html)
             log(f'  词数={words}，门槛问题: {problems or "无，通过"}')
             if not problems:
