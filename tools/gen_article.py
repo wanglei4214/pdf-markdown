@@ -131,6 +131,7 @@ CARD = '''      <!-- article-card-insert-point -->
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">Guide</span>
+              <span class="text-xs text-gray-500">&middot; {date_disp}</span>
               <span class="text-xs text-gray-500">{read_min} min read</span>
             </div>
             <h3 class="text-xl font-semibold text-gray-900 mb-2">
@@ -274,11 +275,12 @@ def escape_attr(s):
              .replace('"', '&quot;'))
 
 
-def insert_card(slug, title, description, read_min):
+def insert_card(slug, title, description, read_min, date_disp):
     index_path = BLOG / 'index.html'
     src = index_path.read_text(encoding='utf-8')
     card = CARD.format(slug=slug, title=escape_attr(title),
-                       description=escape_attr(description), read_min=read_min)
+                       description=escape_attr(description), read_min=read_min,
+                       date_disp=date_disp)
     marker = '<!-- article-card-insert-point -->'
     if marker in src:
         src = src.replace(marker, card, 1)
@@ -364,13 +366,15 @@ def main():
             d -= _dt.timedelta(days=1)
         date_str = d.strftime('%Y-%m-%d')
         log(f'  今日日期已被占用，发布日期调整为 {date_str}')
+    dd = _dt.datetime.strptime(date_str, '%Y-%m-%d')
+    date_disp = f"{dd.strftime('%B')} {dd.day}, {dd.year}"
 
     page = build_page(slug, title, description, html, read_min, date_str)
     out = BLOG / f'{slug}.html'
     out.write_text(page, encoding='utf-8')
     log(f'已写入 {out}')
 
-    insert_card(slug, title, description, read_min)
+    insert_card(slug, title, description, read_min, date_disp)
     log('已更新 blog/index.html')
 
     published['published'].append(slug)
