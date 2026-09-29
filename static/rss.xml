@@ -5,8 +5,15 @@
     <link>https://pdf.my99ai.com/blog/</link>
     <description>Guides and best practices for converting PDFs to Markdown with OCR</description>
     <language>en</language>
-    <lastBuildDate>Mon, 28 Sep 2026 14:04:45 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2026 13:38:03 +0000</lastBuildDate>
     <atom:link href="https://pdf.my99ai.com/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>PDF to Obsidian Markdown: A Practical Workflow</title>
+      <link>https://pdf.my99ai.com/blog/pdf-to-obsidian-markdown.html</link>
+      <guid>https://pdf.my99ai.com/blog/pdf-to-obsidian-markdown.html</guid>
+      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
+      <description>Convert PDF to Obsidian Markdown with headings, pipe tables, and frontmatter intact. A step-by-step workflow for vault organization and note linking.</description>
+    </item>
     <item>
       <title>PDF Table to Markdown: Fixing Broken Pipe Tables</title>
       <link>https://pdf.my99ai.com/blog/pdf-table-to-markdown.html</link>
