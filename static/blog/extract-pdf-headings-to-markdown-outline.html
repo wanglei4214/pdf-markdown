@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YCN8ZMT5R0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YCN8ZMT5R0');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Extract PDF Headings to a Markdown Outline | PDF to Markdown</title>
+  <meta name="description" content="Learn how PDF bookmarks and TOC entries become Markdown headings, and how to build a clean outline from a 100+ page manual for Obsidian and LLM tools.">
+  <link rel="canonical" href="https://pdf.my99ai.com/blog/extract-pdf-headings-to-markdown-outline.html">
+  <meta property="og:title" content="How to Extract PDF Headings to a Markdown Outline">
+  <meta property="og:description" content="Learn how PDF bookmarks and TOC entries become Markdown headings, and how to build a clean outline from a 100+ page manual for Obsidian and LLM tools.">
+  <meta property="og:url" content="https://pdf.my99ai.com/blog/extract-pdf-headings-to-markdown-outline.html">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://pdf.my99ai.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How to Extract PDF Headings to a Markdown Outline">
+  <meta name="twitter:description" content="Learn how PDF bookmarks and TOC entries become Markdown headings, and how to build a clean outline from a 100+ page manual for Obsidian and LLM tools.">
+  <meta name="twitter:image" content="https://pdf.my99ai.com/og-image.png">
+  <meta name="article:published_time" content="2026-10-05">
+  <meta name="article:author" content="PDF to Markdown">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to Extract PDF Headings to a Markdown Outline",
+    "description": "Learn how PDF bookmarks and TOC entries become Markdown headings, and how to build a clean outline from a 100+ page manual for Obsidian and LLM tools.",
+    "image": "https://pdf.my99ai.com/og-image.png",
+    "datePublished": "2026-10-05",
+    "dateModified": "2026-10-05",
+    "author": {"@type": "Organization", "name": "PDF to Markdown", "url": "https://pdf.my99ai.com"},
+    "publisher": {"@type": "Organization", "name": "PDF to Markdown", "url": "https://pdf.my99ai.com"}
+  }
+  </script>
+  <link rel="stylesheet" href="../tailwind.css">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+  <div class="max-w-3xl mx-auto px-4 py-8 md:py-12 flex-1 w-full">
+    <header class="flex items-start justify-between gap-4 mb-8">
+      <a href="/" class="block">
+        <p class="eyebrow">DOCUMENT CONVERTER</p>
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">PDF &rarr; Markdown</h1>
+      </a>
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-sm whitespace-nowrap">Back to tool</a>
+    </header>
+
+    <nav class="mb-6 text-sm" aria-label="Breadcrumb">
+      <ol class="flex gap-2 text-gray-500">
+        <li><a href="/" class="hover:text-indigo-600">Home</a></li>
+        <li>/</li>
+        <li><a href="/blog/" class="hover:text-indigo-600">Blog</a></li>
+        <li>/</li>
+        <li class="text-gray-700" aria-current="page">How to Extract PDF Headings to a Markdown Outline</li>
+      </ol>
+    </nav>
+
+    <article class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+      <div class="mb-6">
+        <span class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">Guide</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-3">How to Extract PDF Headings to a Markdown Outline</h2>
+        <p class="text-gray-600">Learn how PDF bookmarks and TOC entries become Markdown headings, and how to build a clean outline from a 100+ page manual for Obsidian and LLM tools.</p>
+        <p class="text-sm text-gray-400 mt-3">2026-10-05 &middot; 7 min read</p>
+      </div>
+
+      <div class="prose prose-indigo max-w-none">
+<p>A 200-page service manual is a well-structured document in PDF form: chapters, sections, subsections, and a clickable table of contents. Export it to Markdown without that structure and you get a wall of text that is hard to navigate in Obsidian, awkward as documentation source, and worse as input for an LLM pipeline. The good news is that most PDF headings do not have to be guessed — they are already encoded in the file. This article explains where that heading data lives, how it maps to Markdown heading levels, and how to clean up the result on a manual that is far too long to fix by hand.</p>
+
+<h2>Where PDF heading information actually lives</h2>
+<p>PDF has no native heading concept the way HTML does. Heading structure comes from one of three sources, and they differ a lot in reliability.</p>
+<ul>
+<li><strong>Bookmarks (the document outline).</strong> A nested tree of entries, each pointing to a destination on a page. Generated by Word, LaTeX, InDesign, and most authoring tools when the export keeps navigation enabled. This is the most reliable source.</li>
+<li><strong>Tagged structure.</strong> PDFs built with accessibility support contain a structure tree with elements such as H1–H6, paragraphs, and tables. When it exists it is more precise than bookmarks, because it reflects author intent rather than just navigation.</li>
+<li><strong>Visual styling only.</strong> Larger, bolder, or differently colored text with extra space above it. There is no semantic data here, so a converter has to infer headings from font size, weight, and position. Inference works reasonably well but misfires on captions, table cells, and code listings.</li>
+</ul>
+<p>Many real-world PDFs have none of the first two. Scanned documents have no text layer at all until OCR runs, and files exported from a word processor with bookmark creation turned off land in the same bucket.</p>
+
+<h3>Quick check before you convert</h3>
+<p>Open the PDF in any reader that shows a bookmarks or outline panel. If the panel lists chapters, the structure is there and your conversion will be mostly mechanical. If the panel is empty, expect to rely on font-based detection and plan for a review pass. Some readers also expose a "Tagged PDF" flag in the document properties, which tells you whether a structure tree exists.</p>
+
+<h2>How bookmarks and TOC entries become Markdown headings</h2>
+<p>The mapping rule used by most converters is simple: bookmark nesting depth becomes heading level. Top-level entries get the highest level the converter uses, and each nested level increments by one.</p>
+<table>
+<thead>
+<tr><th>Bookmark depth</th><th>Typical role in a manual</th><th>Markdown level</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>Chapter</td><td>H2 (<code>##</code>)</td></tr>
+<tr><td>2</td><td>Section</td><td>H3 (<code>###</code>)</td></tr>
+<tr><td>3</td><td>Subsection</td><td>H4 (<code>####</code>)</td></tr>
+<tr><td>4</td><td>Sub-subsection</td><td>H5 (<code>#####</code>)</td></tr>
+</tbody>
+</table>
+<p>Whether the top level becomes H1 or H2 matters more than it sounds. In note tools such as Obsidian, H1 is usually reserved for the note title, and in static site generators the page title comes from front matter. If a manual's eight chapters all arrive as H1, the outline pane shows eight competing titles instead of one document with eight sections. A common convention is to map chapter-level bookmarks to H2 and shift everything below accordingly. The same logic applies whether you <a href="https://pdf.my99ai.com/blog/how-to-convert-pdf-to-markdown.html">convert PDF to Markdown</a> with a desktop tool or an online service.</p>
+
+<h3>Headings inferred from font size</h3>
+<p>With no bookmarks, converters cluster text by font size and treat the largest recurring sizes as heading candidates. The word <em>recurring</em> matters: a size used once is more likely a cover title or a pull quote than a section heading. Two failure modes show up repeatedly — large bold text inside table headers becoming headings, and monospaced code listings being caught by weight or size thresholds.</p>
+
+<h3>Bookmarks that carry no useful text</h3>
+<p>Some outlines are generated from page labels: "1", "2", "3", or "Page 14". Others use generic labels such as "Untitled" or "Section 1" for every entry. In those cases the bookmark tree tells you <em>where</em> headings are but not what they say, so the heading text has to come from visual classification on the page itself. Check the first few entries before trusting the whole tree.</p>
+
+<h2>Building a clean outline from a 100+ page manual</h2>
+<p>For a long manual, the goal is not a perfect first pass — it is a predictable sequence that leaves a small, checkable amount of manual work. Run it in this order.</p>
+<ol>
+<li><strong>Convert once and inspect only the outline.</strong> Do not read the body text yet. Open the Markdown with an outline pane expanded to every level and look at the shape. A <a href="https://pdf.my99ai.com/">free PDF to Markdown converter</a> is enough for this first look; if the source is a scan, run OCR first so a text layer exists.</li>
+<li><strong>Decide what H1 means for this document.</strong> Single note or docs page: H1 is the title, body headings start at H2. One file per chapter: each file's chapter title is H1 and its sections start at H2.</li>
+<li><strong>Delete front matter and running elements.</strong> Cover pages, copyright blocks, the printed table of contents, and repeating headers or footers often arrive as headings because they are styled and isolated. Remove them at heading level.</li>
+<li><strong>Merge headings split by line breaks.</strong> PDF line breaks become paragraph breaks, so "Chapter 4" and "Hydraulics" can land as two separate headings. Searching for consecutive heading lines catches most of these quickly.</li>
+<li><strong>Fix hierarchy jumps.</strong> An H2 followed directly by an H4 means a level was lost. Promote the lower heading or insert the missing one — TOC generators and outline panes assume the sequence is continuous.</li>
+<li><strong>Regenerate a Markdown table of contents and compare it to the printed one.</strong> If the PDF has a printed TOC, it is a free checklist. Section names present in the printed TOC but missing from your generated one are the headings the converter dropped.</li>
+<li><strong>Work chapter by chapter.</strong> Split the file at chapter boundaries and fix one at a time. It keeps each review session short and avoids reprocessing the entire document after every correction.</li>
+</ol>
+<p>Rough scale for planning: a manual with eight chapters typically produces a handful of chapter-level headings and several dozen section-level headings. Reviewing that many headings is a manageable pass; reviewing every paragraph is not. If you want the fuller end-to-end process, including splitting and renaming, see this <a href="https://pdf.my99ai.com/blog/pdf-to-markdown-workflow.html">PDF to Markdown workflow</a>.</p>
+
+<h2>Why heading hierarchy matters downstream</h2>
+<ul>
+<li><strong>Notes and knowledge bases.</strong> Outline panes, folding, and breadcrumbs are all driven by heading levels, and in Obsidian headings also determine how a long file gets split into separate notes. A flat or broken hierarchy means no usable navigation. The details are covered in this guide to <a href="https://pdf.my99ai.com/blog/pdf-to-obsidian-markdown.html">PDF to Obsidian Markdown</a>.</li>
+<li><strong>Docs sites and static generators.</strong> Anchors, sidebar navigation, and right-hand TOCs are generated from headings. A skipped level produces either a missing entry or one indented in the wrong place.</li>
+<li><strong>LLM and RAG pipelines.</strong> Most chunkers split on headings so each chunk carries a heading path as context, such as "Chapter 4 &gt; Hydraulics &gt; Pressure relief valve". If headings are missing, chunks are cut on fixed token counts and lose the context that makes retrieval accurate.</li>
+<li><strong>Re-export and accessibility.</strong> Markdown that maps cleanly back to HTML or DOCX keeps its structure, and consistent levels make it far easier to add captions and accessible headings later.</li>
+</ul>
+
+<h2>FAQ</h2>
+<h3>My PDF has no bookmarks. Can I still extract headings?</h3>
+<p>Yes, but you are relying on inference rather than extraction. Run OCR first if the document is a scan, then let the converter classify headings by font size and weight. Expect lower accuracy around tables, captions, and code blocks, and budget a review pass before you rely on the outline.</p>
+
+<h3>Should the first heading in my Markdown file be H1 or H2?</h3>
+<p>Reserve H1 for the document title and start body headings at H2 if the file is a single note or a page on a docs site. If you split a manual into one file per chapter, give each file its chapter title as H1 and start the sections inside it at H2. Consistency matters more than the specific choice — downstream tools read the relative levels.</p>
+
+<h3>Why does my converted file have headings inside tables and code blocks?</h3>
+<p>Font-based detection sees large or bold text and assumes it is a heading, and table headers and monospaced listings often match those rules. Demote those headings manually after conversion, and consider converting table-heavy sections as a separate pass so their text never enters the heading classifier.</p>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-gray-200">
+        <div class="bg-indigo-50 rounded-lg p-4">
+          <p class="text-sm text-gray-700">
+            <strong>Ready to try it?</strong> <a href="/" class="text-indigo-600 hover:underline">Convert your first PDF for free</a> — 200 pages per month, no credit card required. More questions? Check the <a href="/#faq" class="text-indigo-600 hover:underline">FAQ</a> or the <a href="/blog/" class="text-indigo-600 hover:underline">blog</a>.
+          </p>
+        </div>
+      </div>
+
+      <nav class="mt-8 pt-6 border-t border-gray-200 flex justify-between">
+        <a href="/blog/" class="text-indigo-600 hover:text-indigo-700 font-medium">&larr; Back to Blog</a>
+        <a href="/" class="text-indigo-600 hover:text-indigo-700 font-medium">Try the converter &rarr;</a>
+      </nav>
+    </article>
+  </div>
+
+  <footer class="border-t border-gray-200 bg-white mt-auto">
+    <div class="max-w-3xl mx-auto px-4 py-8 text-sm text-gray-500">
+      <p>&copy; PDF to Markdown. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
