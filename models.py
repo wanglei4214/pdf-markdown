@@ -12,6 +12,20 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 FREE_MONTHLY_PAGES = 200
 PRO_MONTHLY_PAGES = 2000
 
+# 特殊配额白名单：指定邮箱单独提升月度页数，仅影响名单内用户，其他用户规则不变
+SPECIAL_MONTHLY_PAGES = {
+    'huoguo0913@gmail.com': 20000,
+}
+
+
+def _monthly_limit(email: str | None, pro: bool) -> int:
+    """按邮箱取用户月度配额：白名单用户优先，其余按 free/pro 规则。"""
+    if email:
+        override = SPECIAL_MONTHLY_PAGES.get(email.lower())
+        if override is not None:
+            return override
+    return PRO_MONTHLY_PAGES if pro else FREE_MONTHLY_PAGES
+
 
 def _current_month() -> str:
     return datetime.now().strftime('%Y-%m')
@@ -258,7 +272,7 @@ def quota_status(user_id: str) -> dict:
     conn = _connect()
     conn.row_factory = sqlite3.Row
     row = conn.execute(
-        'SELECT used_pages, quota_month FROM users WHERE id = ?', (user_id,)
+        'SELECT used_pages, quota_month, email FROM users WHERE id = ?', (user_id,)
     ).fetchone()
     month = _current_month()
     if not row:
@@ -275,7 +289,7 @@ def quota_status(user_id: str) -> dict:
     return {
         'plan': 'pro' if pro else 'free',
         'used_pages': used,
-        'limit': PRO_MONTHLY_PAGES if pro else FREE_MONTHLY_PAGES,
+        'limit': _monthly_limit(row['email'], pro),
         'month': month,
     }
 
@@ -288,7 +302,7 @@ def try_consume_pages(user_id: str, n: int) -> dict | None:
     conn = _connect()
     conn.row_factory = sqlite3.Row
     row = conn.execute(
-        'SELECT used_pages, quota_month FROM users WHERE id = ?', (user_id,)
+        'SELECT used_pages, quota_month, email FROM users WHERE id = ?', (user_id,)
     ).fetchone()
     if not row:
         conn.close()
@@ -296,7 +310,7 @@ def try_consume_pages(user_id: str, n: int) -> dict | None:
     month = _current_month()
     used = row['used_pages'] if row['quota_month'] == month else 0
     pro = _has_paid_order_conn(conn, user_id)
-    limit = PRO_MONTHLY_PAGES if pro else FREE_MONTHLY_PAGES
+    limit = _monthly_limit(row['email'], pro)
     if used + n > limit:
         conn.close()
         return None
