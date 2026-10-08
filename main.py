@@ -546,8 +546,10 @@ async def creem_webhook(request: Request):
 # ---------- 任务接口（均需登录，且只能访问自己的任务） ----------
 
 @app.post('/api/tasks/upload')
-async def upload(file: UploadFile = File(...),
-                 user: dict = Depends(get_current_user)):
+def upload(file: UploadFile = File(...),
+           user: dict = Depends(get_current_user)):
+    # 同步接口：FastAPI 自动放入线程池执行，避免大文件落盘/数页等阻塞操作
+    # 卡住事件循环，导致 OCR 进行中其他请求（轮询/上传）被拖慢甚至超时。
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail='Only PDF files are supported')
 
