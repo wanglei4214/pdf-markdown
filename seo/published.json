@@ -2,6 +2,8 @@
   "published": [
     "convert-scanned-pdf-to-markdown",
     "pdf-to-markdown-converter-online-free",
-    "pdf-table-to-markdown"
+    "pdf-table-to-markdown",
+    "pdf-to-obsidian-markdown",
+    "extract-pdf-headings-to-markdown-outline"
   ]
 }

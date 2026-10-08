@@ -5,8 +5,22 @@
     <link>https://pdf.my99ai.com/blog/</link>
     <description>Guides and best practices for converting PDFs to Markdown with OCR</description>
     <language>en</language>
-    <lastBuildDate>Mon, 28 Sep 2026 14:04:45 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 05 Oct 2026 01:26:06 +0000</lastBuildDate>
     <atom:link href="https://pdf.my99ai.com/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>How to Extract PDF Headings to a Markdown Outline</title>
+      <link>https://pdf.my99ai.com/blog/extract-pdf-headings-to-markdown-outline.html</link>
+      <guid>https://pdf.my99ai.com/blog/extract-pdf-headings-to-markdown-outline.html</guid>
+      <pubDate>Mon, 05 Oct 2026 00:00:00 +0000</pubDate>
+      <description>Learn how PDF bookmarks and TOC entries become Markdown headings, and how to build a clean outline from a 100+ page manual for Obsidian and LLM tools.</description>
+    </item>
+    <item>
+      <title>PDF to Obsidian Markdown: A Practical Workflow</title>
+      <link>https://pdf.my99ai.com/blog/pdf-to-obsidian-markdown.html</link>
+      <guid>https://pdf.my99ai.com/blog/pdf-to-obsidian-markdown.html</guid>
+      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
+      <description>Convert PDF to Obsidian Markdown with headings, pipe tables, and frontmatter intact. A step-by-step workflow for vault organization and note linking.</description>
+    </item>
     <item>
       <title>PDF Table to Markdown: Fixing Broken Pipe Tables</title>
       <link>https://pdf.my99ai.com/blog/pdf-table-to-markdown.html</link>
