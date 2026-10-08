@@ -105,6 +105,12 @@ models.mark_status_where(
     new_status='failed',
     error_message='The service was restarted and processing was interrupted. Please click "Resume" to restart.',
 )
+# 排队（pending）的任务队列在内存中，同样随重启丢失，一并标记失败
+models.mark_status_where(
+    old_status='pending',
+    new_status='failed',
+    error_message='The service was restarted and this queued task was lost. Please click "Resume" to restart.',
+)
 
 # 全局引擎，启动时初始化
 _ocr_engine: OcrEngine | None = None
@@ -113,9 +119,9 @@ _active_threads: dict[str, threading.Thread] = {}
 _cancelled_tasks: set[str] = set()  # 被取消的任务ID集合
 _cancelled_lock = threading.Lock()
 
-# OCR 并发槽：支持 2 个任务并行处理，更多任务排队等待。
-# 使用时间片轮转调度，保证所有用户公平获得处理机会（防止单用户霸占队列）。
-_max_concurrency = max(1, int(os.getenv('OCR_MAX_CONCURRENCY', '2')))
+# OCR 并发槽：小内存服务器（2核2G）必须串行处理，多并发 OCR 会打爆内存、
+# 触发宿主机 OOM 连 sshd 一起杀。扩容内存后再通过 OCR_MAX_CONCURRENCY 调大。
+_max_concurrency = max(1, int(os.getenv('OCR_MAX_CONCURRENCY', '1')))
 _ocr_slots = threading.BoundedSemaphore(_max_concurrency)
 
 # 时间片轮转调度：任务队列按用户分组，轮流从每个用户的队列中取任务

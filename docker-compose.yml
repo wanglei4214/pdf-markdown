@@ -8,9 +8,9 @@ services:
     environment:
       DB_PATH: /app/data/tasks.db
       DATA_DIR: /app/data
-      # OCR 并发槽位数，与代码默认值一致（2 个任务并行，更多任务排队等待）。
-      # 内存占用高，调大前先确认 deploy.resources.limits.memory 足够。
-      OCR_MAX_CONCURRENCY: "2"
+      # OCR 并发槽位数：2核2G 服务器必须保持 1（串行），多并发 OCR 会打爆内存、
+      # 导致宿主机 OOM 连 SSH 一起挂掉。扩容内存后再调大。
+      OCR_MAX_CONCURRENCY: "1"
       # Google 登录：Google Cloud Console 中创建 OAuth 2.0 Client ID（Web application）
       # Client ID 是公开值（前端也会用到），可作为默认值写在这里
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-724994158367-9cva8vq6o80cfitkfut7fcis64d7hhde.apps.googleusercontent.com}"
@@ -32,12 +32,13 @@ services:
       - ./uploads:/app/data/uploads
       - ./outputs:/app/data/outputs
       - ./logs:/app/data/logs
-    # 内存上限：防止 OCR 并发/大文件导致进程内存失控被宿主机 OOM 杀死。
-    # 可通过环境变量 APP_MEMORY_LIMIT 调整，默认 4g（docker compose up 下同样生效）。
+    # 内存上限：必须低于宿主机物理内存（当前 2G），给系统/sshd/nginx 留余量。
+    # 超限时内核只杀 app 容器（restart 策略自动拉起），宿主机和 SSH 保持存活，
+    # 不会再出现整机卡死无法登录的情况。
     deploy:
       resources:
         limits:
-          memory: ${APP_MEMORY_LIMIT:-4g}
+          memory: ${APP_MEMORY_LIMIT:-1500m}
     logging:
       driver: json-file
       options:
