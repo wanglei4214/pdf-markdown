@@ -5,8 +5,15 @@
     <link>https://pdf.my99ai.com/blog/</link>
     <description>Guides and best practices for converting PDFs to Markdown with OCR</description>
     <language>en</language>
-    <lastBuildDate>Mon, 05 Oct 2026 01:26:06 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 12 Oct 2026 01:55:54 +0000</lastBuildDate>
     <atom:link href="https://pdf.my99ai.com/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>Pandoc PDF to Markdown Limitations and Workarounds</title>
+      <link>https://pdf.my99ai.com/blog/pandoc-pdf-to-markdown-limitations.html</link>
+      <guid>https://pdf.my99ai.com/blog/pandoc-pdf-to-markdown-limitations.html</guid>
+      <pubDate>Mon, 12 Oct 2026 00:00:00 +0000</pubDate>
+      <description>Pandoc has no PDF reader. Here's why the pandoc pdf to markdown route fails, which pdftotext and Python workarounds help, and when to convert online.</description>
+    </item>
     <item>
       <title>How to Extract PDF Headings to a Markdown Outline</title>
       <link>https://pdf.my99ai.com/blog/extract-pdf-headings-to-markdown-outline.html</link>

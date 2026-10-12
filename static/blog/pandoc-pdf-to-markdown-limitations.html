@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YCN8ZMT5R0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YCN8ZMT5R0');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pandoc PDF to Markdown Limitations and Workarounds | PDF to Markdown</title>
+  <meta name="description" content="Pandoc has no PDF reader. Here's why the pandoc pdf to markdown route fails, which pdftotext and Python workarounds help, and when to convert online.">
+  <link rel="canonical" href="https://pdf.my99ai.com/blog/pandoc-pdf-to-markdown-limitations.html">
+  <meta property="og:title" content="Pandoc PDF to Markdown Limitations and Workarounds">
+  <meta property="og:description" content="Pandoc has no PDF reader. Here's why the pandoc pdf to markdown route fails, which pdftotext and Python workarounds help, and when to convert online.">
+  <meta property="og:url" content="https://pdf.my99ai.com/blog/pandoc-pdf-to-markdown-limitations.html">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://pdf.my99ai.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pandoc PDF to Markdown Limitations and Workarounds">
+  <meta name="twitter:description" content="Pandoc has no PDF reader. Here's why the pandoc pdf to markdown route fails, which pdftotext and Python workarounds help, and when to convert online.">
+  <meta name="twitter:image" content="https://pdf.my99ai.com/og-image.png">
+  <meta name="article:published_time" content="2026-10-12">
+  <meta name="article:author" content="PDF to Markdown">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Pandoc PDF to Markdown Limitations and Workarounds",
+    "description": "Pandoc has no PDF reader. Here's why the pandoc pdf to markdown route fails, which pdftotext and Python workarounds help, and when to convert online.",
+    "image": "https://pdf.my99ai.com/og-image.png",
+    "datePublished": "2026-10-12",
+    "dateModified": "2026-10-12",
+    "author": {"@type": "Organization", "name": "PDF to Markdown", "url": "https://pdf.my99ai.com"},
+    "publisher": {"@type": "Organization", "name": "PDF to Markdown", "url": "https://pdf.my99ai.com"}
+  }
+  </script>
+  <link rel="stylesheet" href="../tailwind.css">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+  <div class="max-w-3xl mx-auto px-4 py-8 md:py-12 flex-1 w-full">
+    <header class="flex items-start justify-between gap-4 mb-8">
+      <a href="/" class="block">
+        <p class="eyebrow">DOCUMENT CONVERTER</p>
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">PDF &rarr; Markdown</h1>
+      </a>
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-sm whitespace-nowrap">Back to tool</a>
+    </header>
+
+    <nav class="mb-6 text-sm" aria-label="Breadcrumb">
+      <ol class="flex gap-2 text-gray-500">
+        <li><a href="/" class="hover:text-indigo-600">Home</a></li>
+        <li>/</li>
+        <li><a href="/blog/" class="hover:text-indigo-600">Blog</a></li>
+        <li>/</li>
+        <li class="text-gray-700" aria-current="page">Pandoc PDF to Markdown Limitations and Workarounds</li>
+      </ol>
+    </nav>
+
+    <article class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+      <div class="mb-6">
+        <span class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">Guide</span>
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-3">Pandoc PDF to Markdown Limitations and Workarounds</h2>
+        <p class="text-gray-600">Pandoc has no PDF reader. Here's why the pandoc pdf to markdown route fails, which pdftotext and Python workarounds help, and when to convert online.</p>
+        <p class="text-sm text-gray-400 mt-3">2026-10-12 &middot; 6 min read</p>
+      </div>
+
+      <div class="prose prose-indigo max-w-none">
+<p>If you have ever run <code>pandoc input.pdf -o output.md</code> and gotten an error instead of Markdown, you did not misconfigure anything. Pandoc has no PDF reader. That is a design decision rather than a missing feature, and understanding it tells you which workaround is actually worth your time — and when <a href="https://pdf.my99ai.com/blog/how-to-convert-pdf-to-markdown.html">converting a PDF to Markdown</a> with an online tool is simply the faster path.</p>
+
+<h2>Why Pandoc Cannot Read PDF Input</h2>
+
+<p>Pandoc works in three stages: a reader parses a source file into an abstract syntax tree (AST), filters can transform that AST, and a writer serializes it into a target format. Readers exist for formats that carry explicit structure — Markdown, HTML, LaTeX, DOCX, ODT, EPUB, reStructuredText, Org, and others. PDF is not among them, and it is unlikely to be added. For Pandoc, PDF is an <em>output</em> format, produced through a LaTeX, ConTeXt, or HTML/CSS engine.</p>
+
+<h3>Pandoc needs structure; PDF stores coordinates</h3>
+
+<p>A Pandoc reader must know where a heading begins and ends, what belongs to a list, and which cells form a table. A PDF contains almost none of that. Inside a typical PDF you find glyphs placed at x/y positions, drawing operators that paint rectangles and rules onto a page, and font resources. Paragraphs, columns, and headings are visual conventions that humans recognize and software has to guess.</p>
+
+<h3>The specific reasons PDF parsing is hard</h3>
+
+<ul>
+<li><strong>No reading order.</strong> The order in which text is drawn is not necessarily the order a human reads it, especially with two-column layouts, sidebars, and floating figures.</li>
+<li><strong>Encoding gaps.</strong> Many fonts lack a ToUnicode map, so extraction yields ligature artifacts such as <code>fi</code> rendered from a single glyph, or <code>(cid:42)</code> placeholders.</li>
+<li><strong>No semantic tags.</strong> Tagged PDFs exist, but most documents produced by word processors, LaTeX, and print pipelines are untagged.</li>
+<li><strong>Tables are geometry.</strong> A table is a set of ruling lines with positioned text, not rows and columns — which is why <a href="https://pdf.my99ai.com/blog/pdf-table-to-markdown.html">converting PDF tables to Markdown</a> is its own problem.</li>
+<li><strong>Scanned pages contain no text at all.</strong> OCR is a separate pipeline that Pandoc plays no part in.</li>
+</ul>
+
+<p>Shipping a PDF reader would mean embedding layout analysis, font heuristics, and OCR inside Pandoc. That is a different category of software, and the project deliberately leaves it to other tools.</p>
+
+<h2>Workaround 1: pdftotext, Then Pandoc</h2>
+
+<p>The most common route pairs Poppler's <code>pdftotext</code> with Pandoc for the final serialization step.</p>
+
+<ol>
+<li>Extract text: <code>pdftotext -layout input.pdf output.txt</code>. The <code>-layout</code> flag preserves visual arrangement, which helps tables and hurts flowing prose; <code>-raw</code> keeps content-stream order instead.</li>
+<li>Convert to Markdown: <code>pandoc output.txt -o output.md</code>.</li>
+<li>Clean up by hand or by script.</li>
+</ol>
+
+<p>Step 3 is where the time goes. Pandoc's plain-text reader treats blank-line-separated blocks as paragraphs, so you get reasonably clean prose but zero structure — no headings, no lists, no tables. Typical cleanup means rejoining hard-wrapped lines, fixing words split across line breaks, deleting running headers and page numbers, and re-adding <code>#</code> markers where headings used to be.</p>
+
+<h3>Workaround 2: a Python pipeline</h3>
+
+<p>When manual cleanup stops being practical, Python libraries expose what <code>pdftotext</code> discards. PyMuPDF (imported as <code>fitz</code>) returns each text span with its font name and size, which is enough to infer heading levels. <code>pdfplumber</code> is stronger on ruled and borderless tables. Higher-level wrappers such as <code>pymupdf4llm</code> and <code>marker</code> combine layout detection with optional OCR and emit Markdown directly. The trade-offs are real: dependency installs, model downloads, slower runs on large batches, and tuning when your documents do not match the defaults.</p>
+
+<p>In practice this becomes a pipeline: extract, detect headings from font metadata, convert tables separately, then pass the assembled Markdown through Pandoc when you need a different output format. A concrete version of that flow is described in this <a href="https://pdf.my99ai.com/blog/pdf-to-markdown-workflow.html">PDF to Markdown workflow</a>.</p>
+
+<h3>Workaround 3: get to DOCX first</h3>
+
+<p>Pandoc's DOCX reader is one of its best. Headings, lists, tables, footnotes, and emphasis all survive. So if a tool can give you a structured DOCX from the PDF, <code>pandoc document.docx -o document.md</code> produces far better Markdown than any text-based route. The catch is that quality now depends entirely on the PDF-to-DOCX step, which faces the same layout problems — you have moved the hard part, not removed it.</p>
+
+<h2>Limitations That Follow You Into Every Text-Based Workflow</h2>
+
+<table>
+<thead>
+<tr><th>What the PDF holds</th><th>What plain extraction gives you</th></tr>
+</thead>
+<tbody>
+<tr><td>Heading in a large bold font</td><td>An ordinary line of body text</td></tr>
+<tr><td>Table with ruling lines</td><td>Columns of words in jumbled order</td></tr>
+<tr><td>Two-column body text</td><td>Lines interleaved from both columns</td></tr>
+<tr><td>Footnote markers</td><td>Numbers with no links to the notes</td></tr>
+<tr><td>Inline equations</td><td>Garbled glyph runs, or nothing</td></tr>
+<tr><td>Scanned page image</td><td>Empty output; OCR required</td></tr>
+</tbody>
+</table>
+
+<p>None of these are Pandoc bugs. Pandoc receives whatever the extractor hands it, and by that point the structural information is already gone.</p>
+
+<h2>When a Dedicated Online Converter Is the Faster Path</h2>
+
+<p>A browser-based converter earns its place when the document is a means to an end rather than a project:</p>
+
+<ul>
+<li>One-off papers, standards, reports, or vendor PDFs you need in Markdown once.</li>
+<li>Scanned documents, where OCR has to be part of the conversion anyway.</li>
+<li>Headings and tables that need to come out as real Markdown on the first pass.</li>
+<li>No local toolchain — a browser-only machine, a locked-down work laptop, or a teammate who will not install Poppler.</li>
+<li>Pasting into Obsidian, Notion, or an LLM context window, where you want clean Markdown now and do not need a reproducible script.</li>
+</ul>
+
+<p>The free converter at <a href="https://pdf.my99ai.com/">pdf.my99ai.com</a> handles the common cases: upload the PDF, get Markdown with <code>#</code> headings, lists, and pipe tables, with the install and tuning steps removed. Local pipelines still win for large batches, strict privacy requirements, and reproducible builds where every step is scripted and version-pinned. The rule of thumb is simple: if you will run the conversion more than a few dozen times, automate it; if you need the Markdown today, convert it.</p>
+
+<h2>FAQ</h2>
+
+<h3>Can Pandoc convert PDF to Markdown with a filter or plugin?</h3>
+<p>No. Filters and custom writers operate on Pandoc's AST, and building that AST requires a reader. Since no PDF reader exists, there is nothing for a filter to run on. Every "Pandoc PDF" solution you find online is really a separate extractor plus Pandoc.</p>
+
+<h3>Is pdftotext plus Pandoc good enough for academic papers?</h3>
+<p>For simple single-column papers with little math, it yields readable prose that needs manual heading and list cleanup. For two-column layouts, equations, and footnote-heavy text, expect substantial rework, or use a layout-aware extractor first and keep Pandoc for the final format conversion.</p>
+
+<h3>Does converting the PDF to DOCX first really help?</h3>
+<p>Yes, when the DOCX conversion is good. Pandoc's DOCX reader preserves structure, so the Markdown it writes keeps headings, tables, and footnotes. The limitation is inherited: a DOCX built from a messy PDF carries the same jumbled reading order and broken tables, just in a different container.</p>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-gray-200">
+        <div class="bg-indigo-50 rounded-lg p-4">
+          <p class="text-sm text-gray-700">
+            <strong>Ready to try it?</strong> <a href="/" class="text-indigo-600 hover:underline">Convert your first PDF for free</a> — 200 pages per month, no credit card required. More questions? Check the <a href="/#faq" class="text-indigo-600 hover:underline">FAQ</a> or the <a href="/blog/" class="text-indigo-600 hover:underline">blog</a>.
+          </p>
+        </div>
+      </div>
+
+      <nav class="mt-8 pt-6 border-t border-gray-200 flex justify-between">
+        <a href="/blog/" class="text-indigo-600 hover:text-indigo-700 font-medium">&larr; Back to Blog</a>
+        <a href="/" class="text-indigo-600 hover:text-indigo-700 font-medium">Try the converter &rarr;</a>
+      </nav>
+    </article>
+  </div>
+
+  <footer class="border-t border-gray-200 bg-white mt-auto">
+    <div class="max-w-3xl mx-auto px-4 py-8 text-sm text-gray-500">
+      <p>&copy; PDF to Markdown. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
